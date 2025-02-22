@@ -34,17 +34,6 @@
             "Gross",
             "Horrible"
           ]
-        },
-        {
-          "name": "FoodPorn",
-          "whiteListTitle": [
-            "Italian"
-          ],
-          "blackListTitle": null,
-          "whiteListFlair": null,
-          "blackListFlair": null,
-          "whiteListPost": null,
-          "blackListPost": null
         }
       ]
     },

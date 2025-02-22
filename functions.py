@@ -1,29 +1,56 @@
-import datetime
-from datetime import timezone
-import math
-import pyperclip
-import curses
-import webbrowser
-import search
-import json
-import dump
-import formatString
-import scroll
-import requests
+# Libraries
 from io import BytesIO
+from copy import deepcopy
+import curses
+import datetime
+import math
+import json
 from PIL import Image
 import PIL
 import prawcore
+import pyperclip
+import re
+import requests
+from datetime import timezone
+import webbrowser
 
+# Provided
+import search
+from tree import searchTree
+import formatString
+import scroll
+import dump
+import page as p
+import editSearch
+import exceptions
+import keybindings as kb
+
+import config
+
+
+def close(screen):
+    """
+    Closes the ncurses window and restores the terminal to its previous state
+    """
+    curses.nocbreak()
+    screen.keypad(0)
+    curses.echo()
+    curses.endwin()
 
 
 def currentTimestamp():
+    """
+    Returns the current UTC timestamp
+    """
     return datetime.datetime.now(timezone.utc).timestamp()
 
 
 def getSearches(JSONPath):
+    """
+    Gathers all search objects that can be found in the JSONPath file
+    """
     searches = []
-    with open(JSONPath,"r") as read:
+    with open(JSONPath, "r") as read:
         data = json.load(read)
         s = data["searches"]
         read.close()
@@ -39,18 +66,26 @@ def getSearches(JSONPath):
                 flairBL = i["blackListFlair"]
                 postWL = i["whiteListPost"]
                 postBL = i["blackListPost"]
-                subSearches.append(search.SubredditSearch(name,titleWL,titleBL,flairWL,flairBL,postWL,postBL))
+                subSearches.append(
+                    search.SubredditSearch(
+                        name, titleWL, titleBL, flairWL, flairBL, postWL, postBL
+                    )
+                )
 
-            searches.append(search.Search(item["name"],item["lastSearchTime"],subSearches))
-    
+            searches.append(
+                search.Search(item["name"], item["lastSearchTime"], subSearches)
+            )
+
     return searches
 
-"""
-reddit is the reddit instance, searchCriteria is a search object, and numPosts is the number of posts to fetch per subreddit in
-searchCriteria
 
-"""
-def getNumPosts(reddit, searchCriteria, numPosts = 20):
+def getNumPosts(reddit, searchCriteria, numPosts=20):
+    """
+    reddit is the reddit instance, searchCriteria is a search object,
+    and numPosts is the number of posts to fetch per subreddit in
+    searchCriteria
+
+    """
     posts = []
     for sub in searchCriteria.subreddits:
         subreddit = reddit.subreddit(sub.subreddit)
@@ -60,359 +95,473 @@ def getNumPosts(reddit, searchCriteria, numPosts = 20):
     return posts
 
 
-def getSearchNum(screen, searches):
+def listSearches(searches):
+    """Returns a list of searches provided, each enumerated
+
+    Args:
+        searches (list): list of Search objects. Each Search object should have a name variable
+
+    Returns:
+        list: a list of strings of the format x.name
     """
-    Displays a list of searches, and has the user select one to be performed. Also allows the user
-    to create or delete searches.
-    Return Values: 
-        -3 : Search was deleted (therefore save)
-        -2 : Searches parameter is empty, or the user selected to create a new search
-        -1 : User pressed q to quit
-        >=0: The index of the searches list that was chosen
+    return [f"{n+1}. {searches[n].name}" for n in range(len(searches))]
+
+
+def getSearchNum(screen, searches, minCols=80, minLines=24):
+    """Displays a list of searches, and has the user select one to be performed.
+    Also allows the user to create or delete searches.
+
+    Args:
+        screen (curses.screen): The screen to display output to
+        searches (list): list of search objects that will be chosen from
+        minCols (int, optional): Minimum number of columns to use. Defaults to 80.
+        minLines (int, optional): Minimum number of rows to use. Defaults to 24.
+
+    Returns:
+        int:
+            -3: Search was deleted, therefore save
+            -2: Searches parameter is empty, or the user selected to create a new search
+            -1: User pressed q to quit
+            \\>=0: The index of the searches list that was chosen
     """
-    if(searches):
-        ls = []
-        ticker = 1
-        for item in searches:
-            ls.append(f"{ticker}. {item.name}")
-            ticker = ticker + 1
-        lineNum = 0
-        toolTip = scroll.ToolTip(["",formatString.combineStrings(f"<-- Line {lineNum + 1} -- >","((a) add, (e) select, (d) delete, (v) view, or (q) quit)",80,0,curses.COLS-57)])
-        page = scroll.ScrollingList(screen,ls,0,toolTip)
-        
-        while(True):
+    if searches is not None:
+        # Defines the different tooltips
+        toolTipTypes = {
+            "main": [
+                scroll.Line("", 0, curses.COLS),
+                scroll.Line(
+                    [
+                        "<-- Line %i -- >",
+                        "(a) add, (e) select, (d) delete, (v) view, or (q) quit",
+                    ],
+                    [0, "max-55"],
+                    curses.COLS,
+                ),
+            ],
+            "press": [
+                scroll.Line("", 0, curses.COLS),
+                scroll.Line(
+                    ["Enter a search number, then press enter: ", "(press q to exit)"],
+                    [0, "max-18"],
+                    curses.COLS,
+                ),
+            ],
+            "enter": [
+                scroll.Line("", 0, curses.COLS),
+                scroll.Line(
+                    ["Enter a search number, then press enter: ", "(enter q to exit)"],
+                    [0, "max-18"],
+                    curses.COLS,
+                ),
+            ],
+        }
+        mode = {
+            "enter": "~Selecting~",
+            "view": "~Viewing~",
+            "delete": "~Deleting~",
+        }
+        toolTip = scroll.ToolTip(toolTipTypes["main"])
+
+        # Creates the scrolling list page
+        ls = listSearches(searches)
+        scrollList = scroll.ScrollingList(screen, ls, 0, toolTip)
+        page = p.Page(
+            screen=screen,
+            scrollingList=scrollList,
+            tooltip=toolTip,
+            tooltipTypes=toolTipTypes,
+            onUpdate=listSearches,
+            content=searches,
+            minRows=minLines,
+            minCols=minCols,
+        )
+        page.switchTooltip("main")
+
+        while True:
             # Updates tooltip and prints page to screen
-            toolTip.replace(["",formatString.combineStrings(f"<-- Line {lineNum + 1} -- >","((a) add, (e) select, (d) delete, (v) view, or (q) quit)",80,0,curses.COLS-57)])
-            page.print()
+            page.refreshTooltip("main", page.currentLine() + 1, index=1, print=True)
 
-            char = screen.getch() # Gets single character input from user
-            if(char == ord('q')): # Returns from function, signalling to quit program
-                return -1
-            
-            elif(char == curses.KEY_UP or char == ord('w')): # Scrolls up
-                lineNum = page.scrollUp()
-                continue
-            
-            elif(char == curses.KEY_DOWN or char == ord('s')): # Scrolls down
-                lineNum = page.scrollDown()
-                continue
-
-            elif(char == ord('a')):
-                return -2
-            
-            # User either wants to perform a search/create one or delete a search.
-            # Either way, input is gathered the same
-            elif char == ord('e') or char == ord('d') or char == ord('v'):
-                # Updates prompt(tooltip), then prints to screen
-                if(char == ord('e')):
-                    toolTip.replace(["~Selecting~",formatString.combineStrings(f"Enter a search number, then press enter: ","(press q to exit)",80,0,curses.COLS-18)])
-                elif(char == ord('v')):
-                    toolTip.replace(["~Viewing~",formatString.combineStrings(f"Enter a search number, then press enter: ","(press q to exit)",80,0,curses.COLS-18)])
-                else:
-                    toolTip.replace(["~Deleting~",formatString.combineStrings(f"Enter a search number, then press enter: ","(press q to exit)",80,0,curses.COLS-18)])
-                page.print()
-
-                # Moves cursor to end of prompt
-                placeCursor(screen,x=41,y=curses.LINES-1)
-    
-
-                # Display what they type, and require they press enter
-                c = screen.getch() # Allows immediate exit if they press q
-                if c == ord('q'):
+            # Gets single character input from user
+            char = eventListener(
+                screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
+            )
+            match char:
+                case "timeout":
                     continue
 
-                # Updates prompt(tooltip), then prints to screen
-                if(char == ord('e')):
-                    toolTip.replace(["~Selecting~",formatString.combineStrings(f"Enter a search number, then press enter: ","(enter q to exit)",80,0,curses.COLS-18)])
-                elif(char == ord('v')):
-                    toolTip.replace(["~Viewing~",formatString.combineStrings(f"Enter a search number, then press enter: ","(enter q to exit)",80,0,curses.COLS-18)])
-                else:
-                    toolTip.replace(["~Deleting~",formatString.combineStrings(f"Enter a search number, then press enter: ","(enter q to exit)",80,0,curses.COLS-18)])
-                page.print()
+                case "exit":  # Returns from function, signalling to quit program
+                    return -1
 
-                # Moves cursor to end of prompt
-                placeCursor(screen,x=41,y=curses.LINES-1)
+                case "add":  # 'a' was pressed. Adds a search
+                    return -2
 
-                # Displays user's input, and requires they press enter to submit
-                curses.echo()
-                curses.nocbreak()
-                curses.ungetch(c) # Adds the first character back to the buffer
-                string = screen.getstr()
+                # User wants to perform, view, or delete a search
+                case "enter" | "delete" | "view":
+                    # Tells user to press 'q' to exit
+                    page.refreshTooltip(
+                        "press", page.currentLine() + 1, index=1, print=False
+                    )
+                    toolTip.update(scroll.Line(mode[char], 0, curses.COLS))
+                    page.print()
 
-                # Undo displaying input and requiring enter be pressed
-                curses.noecho()
-                curses.cbreak()
+                    # Moves cursor to end of prompt
+                    placeCursor(screen, x=41, y=curses.LINES - 1)
 
-                # Attempts to convert their input to an integer
-                val = 0
-                try:
-                    val = int(string)
-                except ValueError:
-                    continue
-                
+                    # Gets a single character from user
+                    c = screen.getch()  # Allows immediate exit if they press q
+                    if c == ord("q"):
+                        continue
 
-                val -= 1 # Offsets input, so it is an index
-                if(val >= 0 and val < len(searches)):
-                    if(char == ord('d')):
-                        del searches[val]
-                        return -3
-                    elif(char == ord('v')):
-                        view = searchTree(searches[val])
-                        viewLine = 0
-                        viewTool = scroll.ToolTip(["",formatString.combineStrings(f"<-- Line {viewLine + 1} -- >","press (q) to exit",80,0,curses.COLS-18)])
-                        viewPage = scroll.ScrollingList(screen,view,viewLine,viewTool)
-                        while True:
-                            viewTool.replace([formatString.combineStrings(f"<-- Line {viewLine + 1} -- >","press (q) to exit",80,0,curses.COLS-18)])
-                            viewPage.print()
-                            viewChar = screen.getch()
-                            if(viewChar == ord('q')): # Returns from function, signalling to quit program
-                                break
-                            
-                            elif(viewChar == curses.KEY_UP or viewChar == ord('w')): # Scrolls up
-                                viewLine = viewPage.scrollUp()
-                                continue
-                            
-                            elif(viewChar == curses.KEY_DOWN or viewChar == ord('s')): # Scrolls down
-                                viewLine = viewPage.scrollDown()
-                                continue
-                    else:
-                        return val
+                    # Tells user to enter 'q' to exit
+                    page.refreshTooltip(
+                        "enter", page.currentLine() + 1, index=1, print=False
+                    )
+                    page.tooltip.update(scroll.Line(mode[char], 0, curses.COLS))
+                    page.print()
+
+                    # Gets multi-character input from the user
+                    string = getInput(
+                        screen=screen,
+                        page=page,
+                        tooltip=toolTip,
+                        unget=c,
+                        col=41,
+                    )
+
+                    # Attempts to convert their input to an integer
+                    val = 0
+                    try:
+                        val = int(string) - 1
+                    except ValueError:
+                        continue
+
+                    # The val must be a valid index in the list of searches
+                    if val >= 0 and val < len(searches):
+                        if char == "delete":  # 'd' key for delete
+                            del searches[val]
+                            return -3
+                        elif char == "view":  # Views search
+                            if viewSearch(screen, searches[val]):
+                                return -3
+                        else:  # Selects search
+                            return val
+                case _:
+                    page.manipulate(char)
     else:
         return -2
-            
 
-def createSearch(screen):
+
+def viewSearchUpdate(search):
+    return searchTree(search, curses.COLS, config.fancy_characters)
+
+
+def viewSearch(screen, search, minCols=80, minLines=24):
+    """
+    Enters a screen with a tree depicting the specified search is displayed
+    """
+
+    if search is not None:
+        toolTipType = "main"
+        toolTipTypes = {
+            "main": [
+                scroll.Line("", 0, curses.COLS),
+                scroll.Line(
+                    ["<-- Line %i -- >", "press (e) to edit or (q) to exit"],
+                    [0, "max-33"],
+                    curses.COLS,
+                ),
+            ],
+            "save": [
+                scroll.Line(
+                    ["Would you like to save? [Y/N]:", "(press enter)"],
+                    [0, "max-14"],
+                    curses.COLS,
+                )
+            ],
+        }
+        toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
+
+        view = viewSearchUpdate(search)
+        page = scroll.ScrollingList(screen, view, 0, toolTip)
+        viewPage = p.Page(
+            screen=screen,
+            scrollingList=page,
+            tooltip=toolTip,
+            tooltipTypes=toolTipTypes,
+            onUpdate=viewSearchUpdate,
+            content=search,
+            minRows=minLines,
+            minCols=minCols,
+        )
+        viewPage.switchTooltip("main")
+
+        while True:
+            # Changes toolTip if necessary
+            viewPage.refreshTooltip(
+                "main", viewPage.currentLine() + 1, index=1, print=True
+            )
+
+            # Gets input from user
+            viewChar = eventListener(
+                screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
+            )
+
+            match viewChar:
+                case "exit":  # Returns from function, signalling to exit search view
+                    return False
+
+                case "enter":
+                    originalSearch = deepcopy(search)
+                    resized = editSearch.EditSearch(screen, search, minCols, minLines)
+                    if resized:
+                        viewPage.resize()
+                    else:
+                        viewPage.updateContent()
+                    viewPage.refreshTooltip("save", print=True)
+                    answer = getInput(screen, col=31).lower()
+                    if not (answer == "y" or answer == "yes"):
+                        search = originalSearch
+                        return False
+                    else:
+                        return True
+
+                case _:
+                    viewPage.manipulate(viewChar)
+
+
+def getInput(
+    screen, page=None, tooltip=None, prompt=None, unget=None, row=None, col=None
+):
+    """
+    Gets multi-character input from the user and returns it.
+    """
+    if (
+        prompt is not None and tooltip is not None
+    ):  # Display the prompt for input that was specified
+        if isinstance(prompt, list):
+            tooltip.replace(prompt)
+        else:
+            tooltip.replace([prompt])
+    if page is not None:
+        page.print()
+
+    # Places the curser at the end of the prompt, or where specified by row and col
+    if row is None:
+        if col is None:
+            placeCursor(screen, x=(len(prompt) + 1), y=curses.LINES - 1)
+        else:
+            placeCursor(screen, x=col, y=curses.LINES - 1)
+    else:
+        if col is None:
+            placeCursor(screen, x=(len(prompt) + 1), y=row)
+        else:
+            placeCursor(screen, x=col, y=row)
+
+    # Gets input
+    curses.echo()  # Displays what they type
+    curses.nocbreak()  # Requires that they press enter
+    if unget is not None:
+        curses.ungetch(unget)
+    string = screen.getstr().decode("ASCII")  # Their input
+
+    # Undo displaying input and requiring enter be pressed
+    curses.noecho()
+    curses.cbreak()
+
+    return string
+
+
+def createSearch(screen, minCols=80, minLines=24):
     """
     Creates a search object found in search.py. Prompts user to input data to create this object
     """
 
-    # Clears out the screen to prepare it for creating the search
-    screen.clear()
-    screen.refresh()
+    toolTipTypes = {
+        "press": [
+            scroll.Line(
+                ['(name can not be "q")'],
+                [0],
+                curses.COLS,
+            ),
+            scroll.Line(
+                ["Enter name of search, then press enter:", "(press q to exit)"],
+                [0, "max-18"],
+                curses.COLS,
+            ),
+        ],
+        "enter": [
+            scroll.Line(
+                ['(name can not be "q")'],
+                [0],
+                curses.COLS,
+            ),
+            scroll.Line(
+                ["Enter name of search, then press enter:", "(enter q to exit)"],
+                [0, "max-18"],
+                curses.COLS,
+            ),
+        ],
+        "save": [
+            scroll.Line(
+                ["Would you like to save? [Y/N]:", "(press enter)"],
+                [0, "max-14"],
+                curses.COLS,
+            )
+        ],
+    }
+    toolTip = scroll.ToolTip(toolTipTypes["press"])
+    scrollingList = scroll.ScrollingList(screen, [], tooltip=toolTip)
 
-    stringList = []
-    questions = ["Name of search:","Subreddit:","Whitelisted title:","Blacklisted title:","Whitelisted flair:","Blacklisted flair:","Whitelisted word in post:","Blacklisted word in post:"]
-    searchBuild = [] # Saves the name, creation data, and the list of subreddit searches
-    questionIndex = 0 # The current index of questions array
-    returnSearch = search.Search()
-    lineNum = 0
-    quit = False
-    atLeastOneSub = False
-    toolTip = scroll.ToolTip([questions[questionIndex],formatString.combineStrings(f"<-- Line {lineNum + 1} -- >","(press q to quit)",80,0,curses.COLS-18)])
-    page = scroll.ScrollingList(screen,stringList,0,toolTip)
-    temp = []
+    page = p.Page(
+        screen=screen,
+        scrollingList=scrollingList,
+        tooltip=toolTip,
+        tooltipTypes=toolTipTypes,
+        minRows=minLines,
+        minCols=minCols,
+    )
+    page.refreshTooltip("press", print=True)
 
-    while(True):
-        if(quit):
-            break
-
-        page.print()
-
-        
-        # placeCursor(screen,x=16,y=curses.LINES-2)
-        # screen.refresh()
-        if(questionIndex == 0):
-            # Gets search name
-            prompt = questions[questionIndex]
-            toolTip.replace([prompt])
-            page.print()
-            placeCursor(screen,x=(len(prompt) + 1),y=curses.LINES-1)
-            
-            # Gets input
-            curses.echo() # Displays what they type
-            curses.nocbreak() # Requires that they press enter
-            string = screen.getstr().decode("ASCII") # Their input
-
-            # Undo displaying input and requiring enter be pressed
-            curses.noecho()
-            curses.cbreak()
-            returnSearch.update(name = string)
-            questionIndex = questionIndex + 1
-            stringList = searchTree(returnSearch)
-            page.updateStrings(screen,stringList,0,toolTip)
-
-        elif(questionIndex == 1):
-            # Gets first subreddit name
-            prompt = questions[questionIndex]
-            toolTip.replace([prompt])
-            page.print()
-            placeCursor(screen,x=(len(prompt) + 1),y=curses.LINES-1)
-            
-            # Gets input
-            curses.echo() # Displays what they type
-            curses.nocbreak() # Requires that they press enter
-            string = screen.getstr().decode("ASCII") # Their input
-
-            # Undo displaying input and requiring enter be pressed
-            curses.noecho()
-            curses.cbreak()
-            if(returnSearch.subreddits == None): # If this is the first sub search, set subreddits value
-               returnSearch.update(subreddits=[search.SubredditSearch()])
-            else: # Otherwise, append a new subreddit search
-               returnSearch.update(subreddits=returnSearch.subreddits.append(search.SubredditSearch()))
-            returnSearch.subreddits[-1].update(sub=string)
-            questionIndex = questionIndex + 1
-            stringList = searchTree(returnSearch)
-            page.updateStrings(screen,stringList,0,toolTip)
-            
-        else: # For all questions except name of search
-            while(True):
-                prompt = f"Add a {questions[questionIndex]} (y/n):"
-                toolTip.replace([prompt])
-                page.print()
-                placeCursor(screen,x=(len(prompt) + 1),y=curses.LINES-1)
-                c = screen.getch() # Gets the character they type
-
-                # User entered n. Moves on to next question. If this was the last question, asks
-                # user if they want to add another subreddit.
-                if c == ord('n'):
-                    questionIndex = questionIndex + 1
-                    temp = []
-                    if(questionIndex >= len(questions)):
-                        prompt = f"Add another Subreddit (y/n):"
-                        toolTip.replace([prompt])
-                        page.print()
-                        placeCursor(screen,x=(len(prompt) + 1),y=curses.LINES-1)
-                        answer = screen.getch()
-                        if(answer == ord('n')):
-                            quit = True
-                            break
-                        else:
-                            questionIndex = 1
-                            break
-                elif c == ord('y'): # Otherwise
-                    # Update prompt to remove option to quit
-                    prompt = f"{questions[questionIndex]}"
-                    toolTip.replace([prompt])
-                    page.print()
-                    placeCursor(screen,x=(len(prompt) + 1),y=curses.LINES-1)
-
-                    # Gets input
-                    curses.echo() # Displays what they type
-                    curses.nocbreak() # Requires that they press enter
-                    string = screen.getstr().decode("ASCII") # Their input
-
-                    # Undo displaying input and requiring enter be pressed
-                    curses.noecho()
-                    curses.cbreak()
-                    if(not string.strip() == ""):
-                        temp.append(string)
-                        if(questionIndex == 2):
-                            returnSearch.subreddits[-1].update(titleWL=temp)
-                        elif(questionIndex == 3):
-                            returnSearch.subreddits[-1].update(titleBL=temp)
-                        elif(questionIndex == 4):
-                            returnSearch.subreddits[-1].update(flairWL=temp)
-                        elif(questionIndex == 5):
-                            returnSearch.subreddits[-1].update(flairBL=temp)
-                        elif(questionIndex == 6):
-                            returnSearch.subreddits[-1].update(postWL=temp)
-                        elif(questionIndex == 7):
-                            returnSearch.subreddits[-1].update(postBL=temp)
-                        stringList = searchTree(returnSearch)
-                        page.updateStrings(screen,stringList,0,toolTip)
-                            
-    return returnSearch
-
-def searchTree(search):
-    """
-    Returns a list of strings representing a tree-style view of a search
-    """
-    if(search is not None):
-        stringList = []
-        if(not search.name == None):
-            stringList.append(search.name)
-            if(not search.subreddits == None):
-                tierOne="  |->"
-                tierTwo="  |    |->"
-                tierThree="  |    |    |->"
-                for sub in search.subreddits:
-                    stringList.append(f"{tierOne}{sub.name}")
-                    if(not sub.titleWL == None and len(sub.titleWL) > 0):
-                        stringList.append(f"{tierTwo}Title whitelist")
-                        for item in sub.titleWL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-                    if(not sub.titleBL == None and len(sub.titleBL) > 0):
-                        stringList.append(f"{tierTwo}Title blacklist")
-                        for item in sub.titleBL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-                    if(not sub.flairWL == None and len(sub.flairWL) > 0):
-                        stringList.append(f"{tierTwo}Flair whitelist")
-                        for item in sub.flairWL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-                    if(not sub.flairBL == None and len(sub.flairBL) > 0):
-                        stringList.append(f"{tierTwo}Flair blacklist")
-                        for item in sub.flairBL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-                    if(not sub.postWL == None and len(sub.postWL) > 0):
-                        stringList.append(f"{tierTwo}Post whitelist")
-                        for item in sub.postWL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-                    if(not sub.postBL == None and len(sub.postBL) > 0):
-                        stringList.append(f"{tierTwo}Post blacklist")
-                        for item in sub.postBL:
-                            if(len(item) > (79-len(tierThree))):
-                                item = f"{item[:76-(len(tierThree))]}..."
-                            stringList.append(f"{tierThree}{item}")
-        return stringList
-    else:
+    placeCursor(screen, x=40, y=curses.LINES - 1)
+    c = screen.getch()  # Gets the character they type
+    if c == ord("q"):  # Immediately exits if they pressed q
         return None
 
+    else:  # Otherwise
+        # Update prompt to tell them to 'enter q" instead of 'press q"
+        page.refreshTooltip("enter", print=True)
+        name = getInput(screen, unget=c, col=40)
+        if name.lower == "q":
+            return None
+        newSearch = search.Search(name)
+        resized = editSearch.EditSearch(
+            screen, newSearch, minCols=minCols, minLines=minLines
+        )
+        if resized:
+            page.resize()
+        else:
+            page.updateContent()
+        page.refreshTooltip("save", print=True)
+        answer = getInput(screen, col=31).lower()
+        if answer == "y" or answer == "yes":
+            return newSearch
+        else:
+            return None
 
 
+def completeSearch(
+    reddit,
+    searches,
+    searchIndex,
+    posts=None,
+    screen=None,
+    minCols=80,
+    minLines=24,
+    save=True,
+    searchesPath=None,
+):
+    """
+    Calls performSearch and saves the search timestamp to the searches file. Saving the timestamp can be disabled with the save parameter.
+    """
+    time = math.floor(currentTimestamp())
+    posts = posts + performSearch(
+        reddit, searches[searchIndex], screen, minCols, minLines
+    )
+    posts = sortPosts(posts)
+    searches[
+        searchIndex
+    ].lastSearchTime = time  # Sets the search time in the search variable
+    if save and searchesPath is not None:
+        dump.saveSearches(
+            searches, searchesPath
+        )  # Writes the search variable to the file
+    return posts
 
 
-def performSearch(reddit,search,screen = None):
+def performSearch(reddit, search, screen=None, minCols=80, minLines=24):
+    """
+    Gathers posts that meat the search object criteria, using the reddit object.
+    If a screen object is provided, displays a simple search in progress message.
+    """
     posts = []
     ticker = 0
+    if screen is not None:
+        screen.clear()
+        screen.refresh()
+        string = "Searching..."
+        stringTicker = 0
     for sub in search.subreddits:
         subreddit = reddit.subreddit(sub.name)
-        for post in subreddit.new(limit=None):
-            if(post.created_utc == None):
+        for post in subreddit.new(
+            limit=None
+        ):  # Gets all posts in the current subreddit
+            if post.created_utc is None:
                 continue
-            if(post.created_utc < search.lastSearchTime):
+            if (
+                post.created_utc < search.lastSearchTime
+            ):  # continues until it finds a post older than the last search time
                 break
             else:
-                if(filterPost(post,sub)):
+                if filterPost(
+                    post, sub
+                ):  # If post meets the specified filters, append it to the list
                     posts.append(post)
             ticker = ticker + 1
-            if(screen != None):
-                startX = 13
-                startY = 8
+
+            if screen is not None:
+                resize = eventListener(
+                    screen, bindings=[kb.controlKeys], characters=False, timeout=5
+                )  # Gets input from user. Only listens for terminal resizing
+
+                if resize == "resize":  # Resizes content if terminal was resized
+                    size = list(screen.getmaxyx())
+                    if size[0] < minLines:
+                        size[0] = minLines
+                    if size[1] < minCols:
+                        size[1] = minCols
+                    curses.resize_term(size[0], size[1])
+
                 screen.clear()
-                screen.addstr(curses.LINES-1,0," (This may take a while, depending on time since the search was last performed)")
-                screen.addstr(startY,startX,"                         _     _ ")
-                screen.addstr(startY+1,startX," ___  ___  __ _ _ __ ___| |__ (_)_ __   __ _ ")
-                screen.addstr(startY+2,startX,"/ __|/ _ \\/ _` | '__/ __| '_ \\| | '_ \\ / _` |")
-                if(ticker % 3 == 1):
-                    screen.addstr(startY+3,startX,"\\__ \\  __/ (_| | | | (__| | | | | | | | (_| |  _")
-                    screen.addstr(startY+4,startX,"|___/\\___|\\__,_|_|  \\___|_| |_|_|_| |_|\\__, | (_)")
+                waitMessage = "(This may take a while, depending on time since the search was last performed)"
+                # Prints the wait message at the bottom of the screen
+                screen.addstr(
+                    curses.LINES - 1,
+                    int((curses.COLS - len(waitMessage)) / 2),
+                    waitMessage,
+                )
 
-                elif(ticker % 3 == 2):
-                    screen.addstr(startY+3,startX,"\\__ \\  __/ (_| | | | (__| | | | | | | | (_| |  _   _")
-                    screen.addstr(startY+4,startX,"|___/\\___|\\__,_|_|  \\___|_| |_|_|_| |_|\\__, | (_) (_)")
+                # Displays searching... in the middle of the screen, with an animation.
+                # starts with s, and adds characters after that, then once it reaches the end of the string,
+                # starts removing characters from the beginning of the string. Once
+                # no characters remain, starts over
 
-                if(ticker % 3 == 0):
-                    screen.addstr(startY+3,startX,"\\__ \\  __/ (_| | | | (__| | | | | | | | (_| |  _   _   _")
-                    screen.addstr(startY+4,startX,"|___/\\___|\\__,_|_|  \\___|_| |_|_|_| |_|\\__, | (_) (_) (_)")
+                stringTicker = int(ticker / 98)
+                stringTicker = stringTicker % (len(string) * 2)
+                if stringTicker >= len(string):
+                    screen.addstr(
+                        int((curses.LINES / 2) - 1),
+                        int((curses.COLS - len(string)) / 2)
+                        + stringTicker
+                        - len(string),
+                        string[stringTicker - len(string) :],
+                    )
+                else:
+                    screen.addstr(
+                        int((curses.LINES / 2) - 1),
+                        int((curses.COLS - len(string)) / 2),
+                        string[:stringTicker],
+                    )
 
-                screen.addstr(startY+5,startX,"                                       |___/ ")
-                screen.addstr(0,0,"")
                 screen.refresh()
 
     return posts
 
-def filterPost(post,subReddit):
+
+def filterPost(post, subSearch):
+    """
+    Determines if the post should be included, based off of the filters. Blacklisted items are removed before
+    whitelisted items are added.
+    """
 
     # Easier reference to post contents
     title = post.title
@@ -421,38 +570,38 @@ def filterPost(post,subReddit):
 
     # Check blacklists
 
-    if(not title == None and not subReddit.titleBL == None):
-        for t in subReddit.titleBL:
-            if(t.lower() in title.lower()):
+    if title is not None and subSearch.titleBL is not None:
+        for t in subSearch.titleBL:
+            if t.lower() in title.lower():
                 return False
-            
-    if(not flair == None and not subReddit.flairBL == None):
-        for f in subReddit.flairBL:
-            if(f.lower() in flair.lower()):
+
+    if flair is not None and subSearch.flairBL is not None:
+        for f in subSearch.flairBL:
+            if f.lower() in flair.lower():
                 return False
-    
-    if(not content == None and not subReddit.postBL == None):
-        for c in subReddit.postBL:
-            if(c.lower() in content.lower()):
+
+    if content is not None and subSearch.postBL is not None:
+        for c in subSearch.postBL:
+            if c.lower() in content.lower():
                 return False
-            
+
     # Check whitelists
 
-    if(not title == None and not subReddit.titleWL == None):
-        for t in subReddit.titleWL:
-            if(t.lower() in title.lower()):
+    if title is not None and subSearch.titleWL is not None:
+        for t in subSearch.titleWL:
+            if t.lower() in title.lower():
                 return True
-            
-    if(not flair == None and not subReddit.flairWL == None):
-        for f in subReddit.flairWL:
-            if(f.lower() in flair.lower()):
+
+    if flair is not None and subSearch.flairWL is not None:
+        for f in subSearch.flairWL:
+            if f.lower() in flair.lower():
                 return True
-    
-    if(not content == None and not subReddit.postWL == None):
-        for c in subReddit.postWL:
-            if(c.lower() in content.lower()):
+
+    if content is not None and subSearch.postWL is not None:
+        for c in subSearch.postWL:
+            if c.lower() in content.lower():
                 return True
-    
+
     return False
 
 
@@ -462,39 +611,21 @@ def getHeaders(posts):
     """
     headers = []
     ticker = 1
-    if (not posts == None):
-        for post in posts:
-            # Age
-            age = post.created_utc
-            if(not age == None):
-                age = int(currentTimestamp() - age)
-            else:
-                age = 0
-
-            # Subreddit
-            sub = formatString.removeNonAscii(post.subreddit.display_name)
-            if(sub == None):
-                sub = "<NO SUBREDDIT>"
-
-            # Title
-            title = formatString.removeNonAscii(post.title)
-            if(title == None):
-                title = "<NO TITLE>"
-            
-            # Flair
-            flair = post.link_flair_text
-            if(flair == None):
-                flair = "<NO FLAIR>"
-            
-            # Author
-            author = post.author
-            if(author == None):
-                author = "deleted"
-            else:
-                author = author.name
+    if posts is not None:
+        for post in posts:  # Loops through each post
+            info = getPostInfo(post)  # Gets the information about the post
 
             try:
-                headers += (formatString.enbox([f"{ticker}). {title}",flair,author,f"Posted in ({sub}), {formatString.formatAge(age,"ago")}"],curses.COLS))
+                headers += formatString.enbox(  # Enboxes and stores the results
+                    [
+                        f"{ticker}). {info['title']}",
+                        info["author"],
+                        info["flair"],
+                        f"Posted in ({info['sub']}), {info['age']}",
+                    ],
+                    curses.COLS,
+                    fancy=config.fancy_characters,
+                )
             except AttributeError:
                 continue
             ticker += 1
@@ -523,160 +654,519 @@ def copyToClipboard(string):
     pyperclip.copy(string)
 
 
-def getInput(prompt, lowerBound, upperBound, numAttempts = -1):
+def getPostInfo(post):
     """
-    Gets an integer input from an user, verifies that it is within some bounds, and 
-    allows them a set number of attempts to get a valid input. Most likely unused, and able to be removed
+    Returns basic information about a post, including age, subreddit it was posted into, title, flair, and author
     """
-    if(lowerBound < 0  or upperBound < 0): # Makes sure both bounds are valid
-        return -1
-    attempts = 0
-    if(numAttempts <= 0):
-        attempts = numAttempts - 1
-    while(attempts < numAttempts):
-        try:
-            value = int(input(f"{prompt}\n"))
-        except ValueError:
-            attempts += 1
-            continue
-        return value
-    return -1
+    # Age
+    age = "<NONE>"
+    if post.created_utc is not None:
+        age = (
+            f"{formatString.formatAge(int(currentTimestamp()-post.created_utc),'ago')}"
+        )
+
+    # Subreddit
+    sub = formatString.removeNonAscii(post.subreddit.display_name)
+    if sub is None:
+        sub = "<NO SUBREDDIT>"
+
+    # Title
+    title = formatString.removeNonAscii(post.title)
+    if title is None:
+        title = "<NO TITLE>"
+
+    # Flair
+    flair = formatString.removeNonAscii(f"~Flair: {post.link_flair_text}~")
+    if flair is None:
+        flair = "~<NO FLAIR>~"
+
+    # Author
+    author = post.author
+    if author is None:
+        author = "[deleted]"
+    else:
+        author = f"[{author.name}]"
+
+    return {"age": age, "sub": sub, "title": title, "flair": flair, "author": author}
 
 
-def viewPost(post,screen):
+def viewPostUpdate(content):
+    """
+    Used by viewPost to re-enbox its content. Necessary for its resize function
+    """
+    return formatString.enbox(
+        content,
+        curses.COLS,
+        fancy=config.fancy_characters,
+    )
+
+
+def bindingLookup(bindingSet: list[kb.Keybind], targets: list[str]):
+    matches = [None] * len(targets)
+    for item in bindingSet:
+        if item.description in targets:
+            matches[targets.index(item.description)] = item
+    return matches
+
+
+def showKeyBind(bind: kb.Keybind | None) -> str:
+    return "undefined" if bind is None else chr(bind.keys[0])
+
+
+def viewPost(post, screen, minCols=80, minLines=24):
     """
     Enters a viewing mode for a single post. Arrow keys can be used to move through and between posts.
     """
-    age = f"{formatString.formatAge(int(currentTimestamp()-post.created_utc),"ago")}"
-    stringList = formatString.enbox([formatString.removeNonAscii(post.title),post.author.name,f"Posted in ({formatString.removeNonAscii(post.subreddit.display_name)}), {age}","%separator%",formatString.removeNonAscii(post.selftext),"%separator%",post.url],curses.COLS)
-    
-    lineNum = 0
 
-    toolTip = scroll.ToolTip([formatString.combineStrings(f"<-- Line 1 -- >","(press q to quit)",80,0,curses.COLS-18)])
-    page = scroll.ScrollingList(screen,stringList,0,toolTip)
-            
-    while(True):
-        toolTip.replace([formatString.combineStrings(f"<-- Line {lineNum + 1} -- >","(press q to quit)",80,0,curses.COLS-18)])
-        page.print()
+    # Gets information about the post, and puts it into the form for viewing
+    info = getPostInfo(post)
+    content = [
+        info["title"],
+        info["author"],
+        info["flair"],
+        f"Posted in ({info['sub']}), {info['age']}",
+        "%separator%",
+        formatString.removeNonAscii(post.selftext),
+        "%separator%",
+        post.url,
+    ]
+    try:
+        stringList = viewPostUpdate(content)  # Enboxes the content
+    except AttributeError:
+        stringList = ""
 
-        char = screen.getch()
-        
-        # Exit viewing the post
-        if char == ord('q'):
-            break
+    # Sets the tooltip
+    toolTipType = "main"
+    toolTipTypes = {
+        "main": [
+            scroll.Line(
+                ["<-- Line %i/%i -- >", "press (q) to exit"],
+                [0, "max-18"],
+                curses.COLS,
+            )
+        ]
+    }
+    toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
 
-        # Scroll down in the post
-        elif(char == curses.KEY_DOWN or char == ord('s')):
-            lineNum = page.scrollDown()
-        
-        # Scroll up in the post
-        elif(char == curses.KEY_UP or char == ord('w')):
-            lineNum = page.scrollUp()
+    # Creates a page with the content and tooltip
+    page = scroll.ScrollingList(screen, stringList, 0, toolTip)
+    viewPage = p.Page(
+        screen=screen,
+        scrollingList=page,
+        tooltip=toolTip,
+        tooltipTypes=toolTipTypes,
+        onUpdate=viewPostUpdate,
+        content=content,
+        minRows=minLines,
+        minCols=minCols,
+    )
+    viewPage.switchTooltip("main")
 
-        # View previous post
-        elif(char == curses.KEY_LEFT or char == ord('a')):
-            return -1
-        
-        # View next post
-        elif(char == curses.KEY_RIGHT or char == ord('d')):
-            return 1
-        
-        # Display help screen
-        elif char == ord('h'):
-            screen.clear()
-            helpPage = scroll.ScrollingList(screen,[
-                "Press the button in () to execute its command",
-                "(w) or (up arrow) scroll up",
-                "(s) or (down arrow) scroll down",
-                "(a) or (left arrow) view previous post",
-                "(d) or (right arrow) view next post",
-                "(h) Displays this menu",
-                "(i) If post is an image, opens image",
-                "(o) Opens the post in a new tab of the default web browser",
-                "(c) Copies the post url to the clipboard",
-                "(u) Prints the post url to the screen (You will have to manually copy it)",
-                "(m) Opens the author's page in a new tab of the default web browser",
-                "Press any key to exit this screen"],0,None)
-            placeCursor(screen,x=0,y=curses.LINES-1)
-            helpPage.print()
-            char = screen.getch() # Help screen disappears when user presses any key
+    skip = False  # Stores whether gathering a character should be done. Used when exiting from the help screen
 
-        # Open post in web browser
-        elif char == ord('o'):
-            webbrowser.open_new_tab(post.url)
+    while True:
+        if not skip:  # Refreshes the tooltip's line number and gets input
+            viewPage.refreshTooltip(
+                "main", [viewPage.currentLine() + 1, page.maxLine + 1], 0, print=True
+            )
+            input = eventListener(
+                screen,
+                bindings=[
+                    kb.controlKeys,
+                    kb.scrollHorizontalKeys,
+                    kb.scrollVerticalKeys,
+                    kb.postKeys,
+                ],
+            )
+        skip = False
 
-        # Copy url to clipboard
-        elif char == ord('c'):
-            copyToClipboard(post.url)
-        
-        # Open image, if present
-        elif char == ord('i'):
-            response = requests.get(post.url) # Gets information from Internet
-            if(response.status_code == 200): # Code 200 means information was sucessfully gathered
-                try:
-                    img = Image.open(BytesIO(response.content)) # Converts binary data to image
-                    img.show() # Opens the image in default image viewer
-                except  PIL.UnidentifiedImageError: # Typically thrown if the link was not an image.
-                    pass
-        
-        # Open author's page
-        elif char == ord('m'):
-            webbrowser.open_new_tab(f"https://www.reddit.com/user/{post.author.name}/")
-        
-        # Displays url of post
-        elif char == ord('u'):
-            screen.clear()
-            screen.addstr(0,0,post.url)
-            screen.addstr(curses.LINES-1,curses.COLS-24,"(press any key to exit)")
-            placeCursor(screen,x=0,y=curses.LINES-1)
-            screen.refresh()
-            char = screen.getch()
+        match input:
+            # User didn't enter anything within the window, repeats loop
+            case "timeout":
+                continue
+
+            # Exits function
+            case "exit":
+                return 0
+
+            # Returns value specifying to view previous post
+            case "scrollLeft":
+                return -1
+
+            # Returns value specifying to view next post
+            case "scrollRight":
+                return 1
+
+            # Displays a help screen
+            case "help":
+                screen.clear()
+                tar = [
+                    "scrollUp",
+                    "scrollDown",
+                    "scrollLeft",
+                    "scrollRight",
+                    "help",
+                    "image",
+                    "open",
+                    "copy",
+                    "url",
+                    "message",
+                ]
+                bindingSet = (
+                    kb.editKeys
+                    + kb.postKeys
+                    + kb.scrollVerticalKeys
+                    + kb.scrollHorizontalKeys
+                )
+
+                bindings = [bind for bind in bindingSet if bind.description in tar]
+
+                matches = bindingLookup(bindings, tar)
+
+                helpPage = scroll.ScrollingList(
+                    screen,
+                    [
+                        "Press the button in () to execute its command",
+                        f"({showKeyBind(matches[0])}) or (up arrow) scroll up",
+                        f"({showKeyBind(matches[1])}) or (down arrow) scroll down",
+                        f"({showKeyBind(matches[2])}) or (left arrow) view previous post",
+                        f"({showKeyBind(matches[3])}) or (right arrow) view next post",
+                        f"({showKeyBind(matches[4])}) Displays this menu",
+                        f"({showKeyBind(matches[5])}) If post is an image, opens image",
+                        f"({showKeyBind(matches[6])}) Opens the post in a new tab of the default web browser",
+                        f"({showKeyBind(matches[7])}) Copies the post url to the clipboard",
+                        f"({showKeyBind(matches[8])}) Prints the post urls to a file. (link_output in config.py)",
+                        f"({showKeyBind(matches[9])}) Opens the author's page in a new tab of the default web browser",
+                        "Press any key to exit this screen",
+                    ],
+                    0,
+                    None,
+                )
+                placeCursor(screen, x=0, y=curses.LINES - 1)
+                helpPage.print()
+                while True:
+                    char = eventListener(
+                        screen, bindings=[kb.controlKeys], anyChar=True
+                    )  # Screen stays up until user does some action
+                    if not (char == "timeout"):
+                        if char == "resize":
+                            skip = True
+                        else:
+                            skip = False
+                        break
+            # Open post in web browser
+            case "open":
+                webbrowser.open_new_tab(post.url)
+
+            # Copy url to clipboard
+            case "copy":
+                copyToClipboard(post.url)
+
+            # Open image, if present
+            case "image":
+                response = requests.get(post.url)  # Gets information from Internet
+                if (
+                    response.status_code == 200
+                ):  # Code 200 means information was sucessfully gathered
+                    try:
+                        img = Image.open(
+                            BytesIO(response.content)
+                        )  # Converts binary data to image
+                        img.show()  # Opens the image in default image viewer
+                    except (
+                        PIL.UnidentifiedImageError
+                    ):  # Typically thrown if the link was not an image.
+                        pass
+
+            # Open author's page
+            case "message":
+                webbrowser.open_new_tab(
+                    f"https://www.reddit.com/user/{post.author.name}/"
+                )
+
+            # Displays url of post
+            case "url":
+                links = findURLs(post.selftext)
+                with open(config.link_output, "a") as f:
+                    f.write(f"{info['title']}:\n")
+                    f.write(f"\t{post.url}\n")
+                    for link in links:
+                        f.write(f"\t{link}\n")
+
+                screen.clear()
+                screen.addstr(0, 0, f"URLs saved to {config.link_output}")
+                screen.addstr(
+                    curses.LINES - 1, curses.COLS - 24, "(press any key to exit)"
+                )
+                placeCursor(screen, x=0, y=curses.LINES - 1)
+                screen.refresh()
+                while True:
+                    char = eventListener(
+                        screen, bindings=[kb.controlKeys], anyChar=True
+                    )  # Screen stays up until user does some action
+                    if not (char == "timeout"):
+                        if char == "resize":
+                            skip = True
+                        else:
+                            skip = False
+                        break
+
+            case _:
+                viewPage.manipulate(input)
 
 
-def placeCursor(screen,x,y):
+def browsePosts(posts, screen, minCols=80, minLines=24):
+    toolTipType = "main"
+    toolTipTypes = {
+        "main": [
+            scroll.Line(
+                ["<-- Line %i/%i -- >", "(press e to view a post or q to quit)"],
+                [0, "max-38"],
+                curses.COLS,
+            )
+        ],
+        "press": [
+            scroll.Line(
+                ["Enter a post number (1-%i), then press enter:", "(press q to exit)"],
+                [0, "max-18"],
+                curses.COLS,
+            )
+        ],
+        "enter": [
+            scroll.Line(
+                ["Enter a post number (1-%i), then press enter:", "(enter q to exit)"],
+                [0, "max-18"],
+                curses.COLS,
+            )
+        ],
+    }
+    toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
+    page = scroll.ScrollingList(screen, getHeaders(posts), tooltip=toolTip)
+
+    browsePage = p.Page(
+        screen=screen,
+        scrollingList=page,
+        tooltip=toolTip,
+        tooltipTypes=toolTipTypes,
+        onUpdate=getHeaders,
+        content=posts,
+        minRows=minLines,
+        minCols=minCols,
+    )
+    browsePage.switchTooltip("main")
+    # browsePage.updateContent()
+
+    while True:
+        # Updates the tooltip, and prints the headers to the screen
+        browsePage.refreshTooltip(
+            "main", [browsePage.currentLine() + 1, page.maxLine + 1], print=True
+        )
+
+        # Gets input from the user
+
+        input = eventListener(
+            screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
+        )
+
+        match input:
+            case "timeout":
+                continue
+            case "exit":
+                break
+            case "refresh":
+                return -2
+            case "enter":
+                # Updates the tooltip and places the cursor for input
+                browsePage.refreshTooltip("press", (len(posts)), print=True)
+
+                placeCursor(screen, x=48, y=curses.LINES - 1)
+                c = screen.getch()  # Gets the character they type
+                if c == ord("q"):  # Immediately exits if they pressed q
+                    continue
+
+                else:  # Otherwise
+                    # Update prompt to tell them to 'enter q" instead of 'press q"
+                    browsePage.refreshTooltip("enter", (len(posts)), print=True)
+                    string = getInput(
+                        screen=screen, page=page, tooltip=toolTip, unget=c, col=48
+                    )
+
+                    # Attempts to convert their input into an integer.
+                    val = 0
+                    try:
+                        val = int(string) - 1
+                    except ValueError:
+                        continue
+
+                    # If the input was an integer, converts to an index, and checks if it is within the bounds of post numbers
+                    # val -= 1
+                    if val >= 0 and val < len(posts):
+                        return val  # Index of the post to be viewed
+            case _:
+                browsePage.manipulate(input)
+    return -1
+
+
+def findURLs(text):
+    """
+    Returns a list of all the valid urls in the text
+    """
+    regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+    url = re.findall(regex, text)
+    return [x[0] for x in url]
+
+
+def placeCursor(screen, x, y):
     """
     Moves the cursor to the specified location
     """
-    screen.addstr(y,x,"")
+    screen.addstr(y, x, "")
 
 
-
-def convertHTML(original):
-    """
-    Takes a post's selftext_html, and converts to a list of strings, which are used in various other functions
-    """
-    stringsList = []
-
-    while(not original.find("<p>") == -1):
-        start = original.find("<p>")
-        end = original.find("</p>")
-        stringsList.append(original[start+3:end])
-        original = original[:start] + original[end+4:]
-        
-    print(original)
-    final = ""
-    for i in range(len(stringsList)):
-        while(not stringsList[i].find("&#39;") == -1):
-            apostrophe = stringsList[i].find("&#39;")
-            stringsList[i] = stringsList[i][:apostrophe] + "'" + stringsList[i][apostrophe+5:]
-        # print(stringsList[i])
-        # print()
-        final = final + stringsList[i] + "\n\n"
-    # print(final)
-    val = formatString.enbox([final],80)
-    return val
-
-
-def isValidSubreddit(userReddit,name):
+def isValidSubreddit(userReddit, name):
     """
     Pulls a single post from the subreddit specified in name, using the praw reddit instance userReddit.
     Returns 1 if sub is valid, -1 if it does not exist or has been banned, or -2 if it is private
     """
     try:
         for submission in userReddit.subreddit(name).new(limit=1):
-            s = submission.id
-    except (prawcore.exceptions.NotFound, prawcore.exceptions.Redirect, prawcore.exceptions.BadRequest, AttributeError): # Errors that arise when the subreddit does not exist
+            submission.id  # Attempts to pull a submission from the subreddit
+    except (
+        prawcore.exceptions.NotFound,
+        prawcore.exceptions.Redirect,
+        prawcore.exceptions.BadRequest,
+        AttributeError,
+    ):  # Errors that arise when the subreddit does not exist
         return -1
     except prawcore.exceptions.Forbidden:
         return -2
     return 1
+
+
+def eventListener(
+    screen, bindings: list | dict = None, characters=True, anyChar=False, timeout=100
+):
+    """
+    Waits for a single character input from the user.
+    bindings: a list of lists of Keybind objects. Returns the first match.
+    characters: is whether it will listen for characters for input, or just terminal resizing.
+    anyChar: will return any for any character input.
+    timeout: is the number of milliseconds the function will wait for a response before returning timeout.
+    """
+
+    if bindings is None and not anyChar:
+        raise exceptions.NoBindingError
+    if isinstance(bindings, dict):
+        bindings = [bindings]
+    try:
+        screen.timeout(timeout)
+        char = screen.getch()
+        if char == curses.KEY_RESIZE:
+            screen.timeout(-1)
+            return "resize"
+        elif anyChar:
+            retVal = ""
+            if char == -1:
+                retVal = "timeout"
+            else:
+                retVal = "any"
+            screen.timeout(-1)
+            return retVal
+        elif characters:
+            if not bindings:
+                screen.timeout(-1)
+                raise exceptions.NoBindingError
+            else:
+                for item in bindings:
+                    for binding in item:
+                        if char in binding.keys:
+                            screen.timeout(-1)
+                            return binding.description
+            """
+            charMap = {ord("q"):"exit",
+                       ord("w"):"scrollUp",
+                       ord("s"):"scrollDown",
+                       ord("a"):"scrollLeft",
+                       ord("d"):"scrollRight",
+                       ord("t"):"scrollTop",
+                       ord("b"):"scrollBottom",
+                       ord("r"):"refresh",
+                       ord("e"):"enter",
+                       ord("v"):"view",
+                       ord("h"):"help",
+                       ord("o"):"open",
+                       ord("c"):"copy",
+                       ord("m"):"message",
+                       ord("u"):"url",
+                       ord("i"):"image",
+                       curses.KEY_UP:"scrollUp",
+                       curses.KEY_DOWN:"scrollDown",
+                       curses.KEY_LEFT:"scrollLeft",
+                       curses.KEY_RIGHT:"scrollRight"}
+            retVal = ""
+            try:
+                retVal = charMap[char]
+            except KeyError:
+                retVal = None
+            
+            if retVal is not None:
+                screen.timeout(-1)
+                return retVal
+            """
+            """
+            if char == ord("q"):
+                screen.timeout(-1)
+                return "exit"
+            elif char == curses.KEY_UP or char == ord("w"):
+                screen.timeout(-1)
+                return "scrollUp"
+            elif char == curses.KEY_DOWN or char == ord("s"):
+                screen.timeout(-1)
+                return "scrollDown"
+            elif char == curses.KEY_LEFT or char == ord("a"):
+                screen.timeout(-1)
+                return "scrollLeft"
+            elif char == curses.KEY_RIGHT or char == ord("d"):
+                screen.timeout(-1)
+                return "scrollRight"
+            elif char == ord("t"):
+                screen.timeout(-1)
+                return "scrollTop"
+            elif char == ord("b"):
+                screen.timeout(-1)
+                return "scrollBottom"
+            elif char == ord("r"):
+                screen.timeout(-1)
+                return "refresh"
+            elif char == ord("e"):
+                screen.timeout(-1)
+                return "enter"
+            elif char == ord("v"):
+                screen.timeout(-1)
+                return "view"
+            elif char == ord("h"):
+                screen.timeout(-1)
+                return "help"
+            elif char == ord("o"):
+                screen.timeout(-1)
+                return "open"
+            elif char == ord("c"):
+                screen.timeout(-1)
+                return "copy"
+            elif char == ord("m"):
+                screen.timeout(-1)
+                return "message"
+            elif char == ord("u"):
+                screen.timeout(-1)
+                return "url"
+            elif char == ord("i"):
+                screen.timeout(-1)
+                return "image"
+            """
+
+        else:
+            screen.timeout(-1)
+            return "timeout"
+    except curses.error:
+        screen.timeout(-1)
+        return "timeout"
