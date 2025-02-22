@@ -47,6 +47,7 @@ class Keybind:
         return formatted
 
 
+# Models scrolling up and down
 scrollVerticalKeys = [
     Keybind(description="scrollUp", keys=[ord("w"), curses.KEY_UP]),
     Keybind(description="scrollDown", keys=[ord("s"), curses.KEY_DOWN]),
@@ -54,17 +55,20 @@ scrollVerticalKeys = [
     Keybind(description="scrollBottom", keys=[ord("b")]),
 ]
 
+# Models scrolling left and right
 scrollHorizontalKeys = [
     Keybind(description="scrollLeft", keys=[ord("a"), curses.KEY_LEFT]),
     Keybind(description="scrollRight", keys=[ord("d"), curses.KEY_RIGHT]),
 ]
 
+# Used for general controls, ex: exit/quit, refresh
 controlKeys = [
     Keybind(description="exit", keys=[ord("q")]),
     Keybind(description="refresh", keys=[ord("r")]),
     Keybind(description="resize", keys=[curses.KEY_RESIZE]),
 ]
 
+# Used for interacting with a post, such as image, url, etc.
 postKeys = [
     Keybind(description="help", keys=[ord("h")]),
     Keybind(description="open", keys=[ord("o")]),
@@ -74,6 +78,7 @@ postKeys = [
     Keybind(description="image", keys=[ord("i")]),
 ]
 
+# Used for editing something, ex: enter/select, add, delete
 editKeys = [
     Keybind(description="enter", keys=[ord("e")]),
     Keybind(description="view", keys=[ord("w")]),

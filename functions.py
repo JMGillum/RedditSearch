@@ -701,7 +701,16 @@ def viewPostUpdate(content):
     )
 
 
-def bindingLookup(bindingSet: list[kb.Keybind], targets: list[str]):
+def bindingLookup(bindingSet: list[kb.Keybind], targets: list[str]) -> list[kb.Keybind] | list[None]:
+    """Generates a list of Keybind objects with a description found as an element of targets
+
+    Args:
+        bindingSet (list[kb.Keybind]): A list of Keybind objects to be searched for
+        targets (list[str]): A list of descriptions to be matched (if possible)
+
+    Returns:
+        (list[kb.Keybind] | list[None]): A list of Keybind objects that match at least one element in targets.
+    """
     matches = [None] * len(targets)
     for item in bindingSet:
         if item.description in targets:
@@ -710,6 +719,14 @@ def bindingLookup(bindingSet: list[kb.Keybind], targets: list[str]):
 
 
 def showKeyBind(bind: kb.Keybind | None) -> str:
+    """Returns the first key in the keybind.
+
+    Args:
+        bind (kb.Keybind | None): keybind object being examined
+
+    Returns:
+        str: the first key in keybind.key, as a single character string
+    """
     return "undefined" if bind is None else chr(bind.keys[0])
 
 

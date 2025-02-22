@@ -3,7 +3,6 @@ import praw
 import prawcore
 import curses
 import math
-import argparse
 import sys
 import json.decoder
 
@@ -13,40 +12,13 @@ import config
 import dump
 import constants
 import formatString
+import setup
 
 
-parser = argparse.ArgumentParser(
-    description="Gathers posts on Reddit that meets specific criteria. Note that the program can be run without any command-line options."
-)
-parser.add_argument(
-    "-n",
-    "--name",
-    metavar="NAME",
-    help="Name of the search to be performed. Case-sensitive.",
-)
-parser.add_argument(
-    "-y",
-    "--yes",
-    action="store_true",
-    help="Automatically agrees to prompts for confirmation.",
-)
-parser.add_argument(
-    "-d",
-    "--dontSave",
-    action="store_true",
-    help="Disables updating of last search time, leaving it how it was before performing the search.",
-)
+parser = setup.setupParser()
 args = vars(parser.parse_args())
 
-# Checks that the config options are set
-if config.client_id == "":
-    print("Please specify a client id in config.py")
-    sys.exit(1)
-if config.client_secret == "":
-    print("Please specify a client secret in config.py")
-    sys.exit(1)
-if config.user_agent == "":
-    print("Please specify a user agent in config.py")
+if not setup.checkConfig(): # Checks that config options were set. Exits on False (AKA they were not set)
     sys.exit(1)
 
 
@@ -59,14 +31,7 @@ reddit_read_only = praw.Reddit(
 
 # Pulls a post to test that config options are properly set
 if config.praw_check:
-    try:
-        for post in reddit_read_only.subreddit("reddit").new(limit=1):
-            post = post
-    except prawcore.exceptions.ResponseException:
-        print("Bad HTTP Response")
-        print(
-            "Please check that the client id, secret, and user agent are properly configured in config.py"
-        )
+    if not setup.checkPraw(reddit_read_only):
         sys.exit(1)
 
 
@@ -86,14 +51,8 @@ screen.keypad(True)  # Converts keys like arrow keys to a specific value
 minTermLines = 24
 minTermCols = 80
 if config.term_size_check:
-    if curses.LINES < minTermLines or curses.COLS < minTermCols:
-        # curses.nocbreak(); screen.keypad(0); curses.echo()
-        # curses.endwin()
-        functions.close(screen)
-        print(
-            f"The current terminal size {curses.LINES}x{curses.COLS} is too small. The minimum size supported is {minTermLines}x{minTermCols}"
-        )
-        sys.exit()
+    if not setup.checkCurses(lines=minTermLines,cols=minTermCols,screen=screen):
+        sys.exit(1)
 
 searches = []
 try:
@@ -109,37 +68,6 @@ choosingSearches = True  # True if the user has yet to choose a search to perfor
 searchIndex = 0  # Index of the search to be performed
 posts = []  # List of all the posts meeting criteria
 
-"""
-page = scroll.ScrollingList(screen, [""])
-toolTipType = "main"
-toolTipTypes = {
-    "main": [
-        scroll.Line(
-            ["<-- Line %i/%i -- >", "(press e to view a post or q to quit)"],
-            [0, "max-38"],
-            curses.COLS,
-        )
-    ],
-    "press": [
-        scroll.Line(
-            ["Enter a post number (1-%i), then press enter:", "(press q to exit)"],
-            [0, "max-18"],
-            curses.COLS,
-        )
-    ],
-    "enter": [
-        scroll.Line(
-            ["Enter a post number (1-%i), then press enter:", "(enter q to exit)"],
-            [0, "max-18"],
-            curses.COLS,
-        )
-    ],
-}
-toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
-
-browsePage = p.Page(screen=screen,scrollingList=page,tooltip=toolTip,tooltipTypes=toolTipTypes,onUpdate=functions.getHeaders,minRows=minTermLines,minCols=minTermCols)
-browsePage.switchTooltip("main")
-"""
 
 try:
     while True:
