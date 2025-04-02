@@ -126,13 +126,16 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
     """
     if searches is not None:
         # Defines the different tooltips
+        targets = ["add","enter","delete","view","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line("", 0, curses.COLS),
                 scroll.Line(
                     [
                         "<-- Line %i -- >",
-                        "(a) add, (e) select, (d) delete, (v) view, or (q) quit",
+                        f"({showKeyBind(matches[0])}) add, ({showKeyBind(matches[1])}) select, ({showKeyBind(matches[2])}) delete, ({showKeyBind(matches[3])}) view, or ({showKeyBind(matches[4])}) quit",
                     ],
                     [0, "max-55"],
                     curses.COLS,
@@ -141,7 +144,7 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
             "press": [
                 scroll.Line("", 0, curses.COLS),
                 scroll.Line(
-                    ["Enter a search number, then press enter: ", "(press q to exit)"],
+                    ["Enter a search number, then press enter: ", f"(press {showKeyBind(matches[4])} to exit)"],
                     [0, "max-18"],
                     curses.COLS,
                 ),
@@ -149,7 +152,7 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
             "enter": [
                 scroll.Line("", 0, curses.COLS),
                 scroll.Line(
-                    ["Enter a search number, then press enter: ", "(enter q to exit)"],
+                    ["Enter a search number, then press enter: ", f"(enter {showKeyBind(matches[4])} to exit)"],
                     [0, "max-18"],
                     curses.COLS,
                 ),
