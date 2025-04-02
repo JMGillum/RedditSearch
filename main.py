@@ -1,6 +1,6 @@
 # Libraries
 import praw
-import prawcore
+# import prawcore
 import curses
 import math
 import sys
