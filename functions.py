@@ -119,10 +119,10 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
 
     Returns:
         int:
-            -3: Search was deleted, therefore save
-            -2: Searches parameter is empty, or the user selected to create a new search
-            -1: User pressed q to quit
-            \\>=0: The index of the searches list that was chosen
+            -3: Search was deleted, therefore save  
+            -2: Searches parameter is empty, or the user selected to create a new search  
+            -1: User pressed q to quit  
+            \\>=0: The index of the searches list that was chosen  
     """
     if searches is not None:
         # Defines the different tooltips
@@ -701,21 +701,6 @@ def viewPostUpdate(content):
     )
 
 
-def bindingLookup(bindingSet: list[kb.Keybind], targets: list[str]) -> list[kb.Keybind] | list[None]:
-    """Generates a list of Keybind objects with a description found as an element of targets
-
-    Args:
-        bindingSet (list[kb.Keybind]): A list of Keybind objects to be searched for
-        targets (list[str]): A list of descriptions to be matched (if possible)
-
-    Returns:
-        (list[kb.Keybind] | list[None]): A list of Keybind objects that match at least one element in targets.
-    """
-    matches = [None] * len(targets)
-    for item in bindingSet:
-        if item.description in targets:
-            matches[targets.index(item.description)] = item
-    return matches
 
 
 def showKeyBind(bind: kb.Keybind | None) -> str:
@@ -836,9 +821,10 @@ def viewPost(post, screen, minCols=80, minLines=24):
                     + kb.scrollHorizontalKeys
                 )
 
-                bindings = [bind for bind in bindingSet if bind.description in tar]
+                # bindings = [bind for bind in bindingSet if bind.description in tar]
 
-                matches = bindingLookup(bindings, tar)
+                # matches = bindingLookup(bindings, tar)
+                matches = kb.findBindings(target=tar,bindingSet=bindingSet)
 
                 helpPage = scroll.ScrollingList(
                     screen,

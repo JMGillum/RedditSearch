@@ -104,3 +104,34 @@ class Keybindings:
         "post":postKeys,
         "edit":editKeys,
         }
+
+
+
+def bindingLookup(bindingSet: list[Keybind], targets: list[str]) -> list[Keybind] | list[None]:
+    """Generates a list of Keybind objects with a description found as an element of targets
+
+    Args:
+        bindingSet (list[kb.Keybind]): A list of Keybind objects to be searched for
+        targets (list[str]): A list of descriptions to be matched (if possible)
+
+    Returns:
+        (list[kb.Keybind] | list[None]): A list of Keybind objects that match at least one element in targets.
+    """
+    matches = [None] * len(targets)
+    for item in bindingSet:
+        if item.description in targets:
+            matches[targets.index(item.description)] = item
+    return matches
+
+
+def findBindings(target : str | list[str], bindingSet: Keybind | list[Keybind]):
+    if isinstance(target,str):
+        target = [target]
+    if isinstance(bindingSet,Keybind):
+        bindingSet = [bindingSet]
+        
+    
+    bindings = [bind for bind in bindingSet if bind.description in target]
+
+    matches = bindingLookup(bindings, target)
+    return matches
