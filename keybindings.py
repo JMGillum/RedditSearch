@@ -87,7 +87,7 @@ postKeys = [
 # Used for editing something, ex: enter/select, add, delete
 editKeys = [
     Keybind(description="enter", keys=[ord("e")]),
-    Keybind(description="view", keys=[ord("w")]),
+    Keybind(description="view", keys=[ord("v")]),
     Keybind(description="add", keys=[ord("a")]),
     Keybind(description="delete", keys=[ord("d")]),
 ]
