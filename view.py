@@ -2,11 +2,12 @@
 import functions
 import formatString
 import scroll
-import page
+import page as p
 import keybindings as kb
 import webbrowser
 from PIL import Image
 import PIL
+import curses
 
 def viewPostUpdate(content):
     """
@@ -74,7 +75,7 @@ def viewPost(post, screen, minCols=80, minLines=24):
             viewPage.refreshTooltip(
                 "main", [viewPage.currentLine() + 1, page.maxLine + 1], 0, print=True
             )
-            input = eventListener(
+            input = functions.eventListener(
                 screen,
                 bindings=[
                     kb.controlKeys,
@@ -151,7 +152,7 @@ def viewPost(post, screen, minCols=80, minLines=24):
                 function.placeCursor(screen, x=0, y=curses.LINES - 1)
                 helpPage.print()
                 while True:
-                    char = eventListener(
+                    char = functions.eventListener(
                         screen, bindings=[kb.controlKeys], anyChar=True
                     )  # Screen stays up until user does some action
                     if not (char == "timeout"):
@@ -204,10 +205,10 @@ def viewPost(post, screen, minCols=80, minLines=24):
                 screen.addstr(
                     curses.LINES - 1, curses.COLS - 24, "(press any key to exit)"
                 )
-                placeCursor(screen, x=0, y=curses.LINES - 1)
+                functions.placeCursor(screen, x=0, y=curses.LINES - 1)
                 screen.refresh()
                 while True:
-                    char = eventListener(
+                    char = functions.eventListener(
                         screen, bindings=[kb.controlKeys], anyChar=True
                     )  # Screen stays up until user does some action
                     if not (char == "timeout"):
