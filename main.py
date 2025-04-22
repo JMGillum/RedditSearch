@@ -13,6 +13,8 @@ import dump
 import constants
 import formatString
 import setup
+import view
+import browse
 
 
 parser = setup.setupParser()
@@ -235,7 +237,7 @@ try:
 
         # Displays a single post
         elif not browseMode:
-            next = functions.viewPost(posts[postNum], screen, minTermCols, minTermLines)
+            next = view.viewPost(posts[postNum], screen, minTermCols, minTermLines)
             if next == -1:  # The user wants to view previous post
                 if postNum > 0:
                     postNum = postNum - 1
@@ -247,7 +249,7 @@ try:
 
         # Displays post headers for browsing
         else:
-            postNum = functions.browsePosts(posts, screen, minTermCols, minTermLines)
+            postNum = browse.browsePosts(posts, screen, minTermCols, minTermLines)
 
             if postNum == -1:  # User wanted to exit browsePosts
                 if args["name"]:
