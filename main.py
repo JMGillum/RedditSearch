@@ -249,7 +249,7 @@ try:
 
         # Displays post headers for browsing
         else:
-            postNum browse.browsePosts(posts, screen, minTermCols, minTermLines)
+            postNum = browse.browsePosts(posts, screen, minTermCols, minTermLines)
 
             if postNum == -1:  # User wanted to exit browsePosts
                 if args["name"]:

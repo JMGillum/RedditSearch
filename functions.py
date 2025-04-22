@@ -1,5 +1,4 @@
 # Libraries
-from io import BytesIO
 from copy import deepcopy
 import curses
 import datetime
@@ -8,7 +7,6 @@ import json
 import prawcore
 import pyperclip
 import re
-import requests
 from datetime import timezone
 
 # Provided

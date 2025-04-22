@@ -2,6 +2,7 @@ import functions
 import scroll
 import page as p
 import curses
+import keybindings as kb
 
 
 
@@ -38,7 +39,7 @@ def browsePosts(posts, screen, minCols=80, minLines=24):
         scrollingList=page,
         tooltip=toolTip,
         tooltipTypes=toolTipTypes,
-        onUpdate=getHeaders,
+        onUpdate=functions.getHeaders,
         content=posts,
         minRows=minLines,
         minCols=minCols,
@@ -69,7 +70,7 @@ def browsePosts(posts, screen, minCols=80, minLines=24):
                 # Updates the tooltip and places the cursor for input
                 browsePage.refreshTooltip("press", (len(posts)), print=True)
 
-                placeCursor(screen, x=48, y=curses.LINES - 1)
+                functions.placeCursor(screen, x=48, y=curses.LINES - 1)
                 c = screen.getch()  # Gets the character they type
                 if c == ord("q"):  # Immediately exits if they pressed q
                     continue

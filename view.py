@@ -1,13 +1,16 @@
 # Functions used for viewing a post.
+from io import BytesIO
 import functions
 import formatString
 import scroll
+import requests
 import page as p
 import keybindings as kb
 import webbrowser
 from PIL import Image
 import PIL
 import curses
+import config
 
 def viewPostUpdate(content):
     """
@@ -134,22 +137,22 @@ def viewPost(post, screen, minCols=80, minLines=24):
                     screen,
                     [
                         "Press the button in () to execute its command",
-                        f"({showKeyBind(matches[0])}) or (up arrow) scroll up",
-                        f"({showKeyBind(matches[1])}) or (down arrow) scroll down",
-                        f"({showKeyBind(matches[2])}) or (left arrow) view previous post",
-                        f"({showKeyBind(matches[3])}) or (right arrow) view next post",
-                        f"({showKeyBind(matches[4])}) Displays this menu",
-                        f"({showKeyBind(matches[5])}) If post is an image, opens image",
-                        f"({showKeyBind(matches[6])}) Opens the post in a new tab of the default web browser",
-                        f"({showKeyBind(matches[7])}) Copies the post url to the clipboard",
-                        f"({showKeyBind(matches[8])}) Prints the post urls to a file. (link_output in config.py)",
-                        f"({showKeyBind(matches[9])}) Opens the author's page in a new tab of the default web browser",
+                        f"({functions.showKeyBind(matches[0])}) or (up arrow) scroll up",
+                        f"({functions.showKeyBind(matches[1])}) or (down arrow) scroll down",
+                        f"({functions.showKeyBind(matches[2])}) or (left arrow) view previous post",
+                        f"({functions.showKeyBind(matches[3])}) or (right arrow) view next post",
+                        f"({functions.showKeyBind(matches[4])}) Displays this menu",
+                        f"({functions.showKeyBind(matches[5])}) If post is an image, opens image",
+                        f"({functions.showKeyBind(matches[6])}) Opens the post in a new tab of the default web browser",
+                        f"({functions.showKeyBind(matches[7])}) Copies the post url to the clipboard",
+                        f"({functions.showKeyBind(matches[8])}) Prints the post urls to a file. (link_output in config.py)",
+                        f"({functions.showKeyBind(matches[9])}) Opens the author's page in a new tab of the default web browser",
                         "Press any key to exit this screen",
                     ],
                     0,
                     None,
                 )
-                function.placeCursor(screen, x=0, y=curses.LINES - 1)
+                functions.placeCursor(screen, x=0, y=curses.LINES - 1)
                 helpPage.print()
                 while True:
                     char = functions.eventListener(
@@ -167,7 +170,7 @@ def viewPost(post, screen, minCols=80, minLines=24):
 
             # Copy url to clipboard
             case "copy":
-                copyToClipboard(post.url)
+                functions.copyToClipboard(post.url)
 
             # Open image, if present
             case "image":
@@ -193,7 +196,7 @@ def viewPost(post, screen, minCols=80, minLines=24):
 
             # Displays url of post
             case "url":
-                links = findURLs(post.selftext)
+                links = functions.findURLs(post.selftext)
                 with open(config.link_output, "a") as f:
                     f.write(f"{info['title']}:\n")
                     f.write(f"\t{post.url}\n")
