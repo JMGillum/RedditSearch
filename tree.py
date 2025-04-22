@@ -18,7 +18,13 @@ class Tree:
             branch = "├─"
             end = "└─"
             space = " "
-
+    def print(self):
+        print("NAME <TEMP>")
+        for item in nodes:
+            if isinstance(item,str):
+                print(item)
+            elif isinstance(item,str):
+                child = self.print(item)
 
 
 def placeItem(name, showBeginning, showMiddle, last, width=80, fancy=False):
