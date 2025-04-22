@@ -1,3 +1,8 @@
+class Tree:
+    pass
+
+
+
 def placeItem(name, showBeginning, showMiddle, last, width=80, fancy=False):
     """
     Used by search tree for the third tier items
