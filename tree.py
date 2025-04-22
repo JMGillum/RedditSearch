@@ -1,5 +1,23 @@
 class Tree:
-    pass
+    self.fancy = False
+    def __init__(self,nodes : list | None):
+        self.set_nodes(nodes)
+    def set_nodes(self,nodes: list | None):
+        self.nodes = nodes
+    def set_fancy(self,fancy: bool):
+        self.fancy = fancy
+        self.set_characters
+    def set_characters(self):
+        pipe = "|"
+        branch = "|->"
+        end = "|->"
+        space = "  "
+        spaceStart = ""
+        if self.fancy:
+            pipe = "│"
+            branch = "├─"
+            end = "└─"
+            space = " "
 
 
 
