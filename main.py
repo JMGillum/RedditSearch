@@ -203,7 +203,7 @@ try:
                     )
                     sys.exit(1)
 
-            posts = posts + functions.completeSearch(
+            posts = functions.completeSearch(
                 reddit_read_only,
                 searches,
                 searchIndex,
