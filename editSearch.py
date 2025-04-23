@@ -13,6 +13,7 @@ class EditSearch:
     def __init__(self, screen, search, minCols=80, minLines=24, launch=True):
         self.update(screen, search, minCols, minLines)
         self.subreddit = None
+       
 
         if launch:
             return self.launch()
