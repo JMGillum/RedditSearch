@@ -1,30 +1,80 @@
 class Tree:
-    self.fancy = False
-    def __init__(self,nodes : list | None):
+    fancy = False
+    pipe = "|"
+    branch = "|->"
+    end = "|->"
+    space = "  "
+    spaceStart = ""
+    string = ""
+    def __init__(self,name : str, nodes : list | None):
+        self.set_name(name)
         self.set_nodes(nodes)
+        
+    
+    def set_name(self,name:str):
+        self.name = name
+    
+
     def set_nodes(self,nodes: list | None):
         self.nodes = nodes
-    def set_fancy(self,fancy: bool):
-        self.fancy = fancy
-        self.set_characters
-    def set_characters(self):
-        pipe = "|"
-        branch = "|->"
-        end = "|->"
-        space = "  "
-        spaceStart = ""
-        if self.fancy:
-            pipe = "│"
-            branch = "├─"
-            end = "└─"
-            space = " "
-    def print(self):
-        print("NAME <TEMP>")
-        for item in nodes:
+        
+        
+    def set_fancy(set_fancy: bool):
+        Tree.fancy = set_fancy
+        Tree.set_characters()
+        
+        
+    def set_characters():
+        if Tree.fancy:
+            Tree.pipe = "│"
+            Tree.branch = "├─"
+            Tree.end = "└─"
+            Tree.space = " "
+        else:
+            Tree.pipe = "|"
+            Tree.branch = "|->"
+            Tree.end = "|->"
+            Tree.space = "  "
+            Tree.spaceStart = ""
+
+
+    def to_string(self):
+        string = self.print(True)
+        self.string = ""
+        for line in string:
+            self.string += line
+        return self.string
+
+
+    def print(self,last=False):
+        string = []
+        if last:
+            string.append(f"{self.end}{self.name}\n")
+        else:
+            string.append(f"{self.branch}{self.name}\n")
+        for i in range(len(self.nodes)):
+            item = self.nodes[i]
             if isinstance(item,str):
-                print(item)
-            elif isinstance(item,str):
-                child = self.print(item)
+                if(i == len(self.nodes)-1):
+                    string.append(Tree.end)
+                else:
+                    string.append(Tree.branch)
+                string[-1] += f"{item}\n"
+            elif isinstance(item,Tree):
+                child_last = (i == len(self.nodes)-1)
+                child = item.print(child_last)
+                for j in range(1,len(child)):
+                    line = child[j]
+                    if(i != len(self.nodes) - 1):
+                        child[j] = Tree.pipe
+                    else:
+                        child[j] = Tree.space
+                    child[j] += f"{Tree.space}{line}" 
+                string += child
+        return string
+    
+    def getText(self):
+        return "<TEST>"
 
 
 def placeItem(name, showBeginning, showMiddle, last, width=80, fancy=False):
