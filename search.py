@@ -38,12 +38,12 @@ class SubredditSearch:
         postBL=None,
     ):
         self.name = sub
-        self.titleWL = titleWL
-        self.titleBL = titleBL
-        self.flairWL = flairWL
-        self.flairBL = flairBL
-        self.postWL = postWL
-        self.postBL = postBL
+        self.titleWL = Filter(name="Title White List")
+        self.titleBL = Filter(name="Title Black List")
+        self.flairWL = Filter(name="Flair White List")
+        self.flairBL = Filter(name="Flair Black List")
+        self.postWL = Filter(name="Post White List")
+        self.postBL = Filter(name="Post Black List")
 
     def update(
         self,
@@ -58,19 +58,13 @@ class SubredditSearch:
         # Updates values if they are presented
         if sub is not None:
             self.name = sub
-        if titleWL is not None:
-            self.titleWL = titleWL
-        if titleBL is not None:
-            self.titleBL = titleBL
-        if flairWL is not None:
-            self.flairWL = flairWL
-        if flairBL is not None:
-            self.flairBL = flairBL
-        if postWL is not None:
-            self.postWL = postWL
-        if postBL is not None:
-            self.postBL = postBL
-
+        self.titleWL.update(titleWL)
+        self.titleBL.update(titleBL)
+        self.flairWL.update(flairWL)
+        self.flairBL.update(flairBL)
+        self.postWL.update(postWL)
+        self.postBL.update(postBL)
+        
     def add(
         self,
         titleWL=None,
@@ -80,53 +74,13 @@ class SubredditSearch:
         postWL=None,
         postBL=None,
     ):
-        if titleWL is not None:
-            if not isinstance(titleWL, list):
-                titleWL = [titleWL]
-            if self.titleWL is not None:
-                self.titleWL += titleWL
-            else:
-                self.titleWL = titleWL
-
-        if titleBL is not None:
-            if not isinstance(titleBL, list):
-                titleBL = [titleBL]
-            if self.titleBL is not None:
-                self.titleBL += titleBL
-            else:
-                self.titleBL = titleBL
-
-        if flairWL is not None:
-            if not isinstance(flairWL, list):
-                flairWL = [flairWL]
-            if self.flairWL is not None:
-                self.flairWL += flairWL
-            else:
-                self.flairWL = flairWL
-
-        if flairBL is not None:
-            if not isinstance(flairBL, list):
-                flairBL = [flairBL]
-            if self.flairBL is not None:
-                self.flairBL += flairBL
-            else:
-                self.flairBL = flairBL
-
-        if postWL is not None:
-            if not isinstance(postWL, list):
-                postWL = [postWL]
-            if self.postWL is not None:
-                self.postWL += postWL
-            else:
-                self.postWL = postWL
-
-        if postBL is not None:
-            if not isinstance(postBL, list):
-                postBL = [postBL]
-            if self.postBL is not None:
-                self.postBL += postBL
-            else:
-                self.postBL = postBL
+       
+       self.titleWL.add(titleWL)
+       self.titleBL.add(titleBL) 
+       self.flairWL.add(flairWL)
+       self.flairBL.add(flairBL)
+       self.postWL.add(postWL)
+       self.postBL.add(postBL)
 
 
 class Search:
