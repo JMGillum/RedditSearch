@@ -95,18 +95,25 @@ class Tree:
         """
         string = []
         if self.name:
-            if last:
-                string.append(f"{self.end}{self.name}")
-            else:
-                string.append(f"{self.branch}{self.name}")
+            prefix = self.end if last else self.branch
+            try:
+                if self.line_wrap > 0:
+                    temp = tabulate(self.name,self.line_wrap,0)
+                    temp = temp.split("\n")
+                    for j in range(len(temp)):
+                        if(temp[j].strip() != ""):
+                            if j == 0:
+                                string.append(f"{prefix}{temp[j]}")
+                            else:
+                                string.append(f"{self.split_line}{temp[j]}") 
+                else:
+                    string.append(f"{prefix}{self.name}")
+            except AttributeError:
+                    string.append(f"{prefix}{self.name}")
         for i in range(len(self.nodes)):
             item = self.nodes[i]
             if isinstance(item,str):
-                prefix = ""
-                if(i == len(self.nodes)-1):
-                    prefix = self.end
-                else:
-                    prefix = self.branch
+                prefix = self.end if (i==len(self.nodes)-1) else self.branch
                 try:
                     if self.line_wrap > 0:
                         temp = tabulate(item,self.line_wrap,0)
@@ -134,7 +141,9 @@ class Tree:
                         child[j] = self.pipe
                     else:
                         child[j] = self.space
-                    child[j] += f"{self.space}{line}" 
+                    if len(line) > 0 and line[0] != self.split_line:
+                        child[j] += self.space
+                    child[j] += line
                 string += child
         return string
     
