@@ -12,6 +12,7 @@ from datetime import timezone
 # Provided
 import search
 from tree import searchTree
+import tree
 import formatString
 import scroll
 import dump
@@ -250,7 +251,9 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
 
 
 def viewSearchUpdate(search):
-    return searchTree(search, curses.COLS, config.fancy_characters)
+    search.tree.cascading_update(set_fancy=config.fancy_characters)
+    return search.tree.print(as_a_string=False)
+    # return searchTree(search, curses.COLS, config.fancy_characters)
 
 
 def viewSearch(screen, search, minCols=80, minLines=24):
