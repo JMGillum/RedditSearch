@@ -1,3 +1,31 @@
+from tree import Tree
+
+class Filter:
+    def __init__(self,name=None,content=None):
+        # name is str, content is list of strings
+        self.name = ""
+        self.content = ""
+        self.update(name,content)
+
+
+    def update(self,name=None,content=None):
+        if name is not None and isinstance(name,str):
+            self.name = name
+        if content is not None and isinstance(content,list):
+            self.content = content
+    
+    
+    def add(self,content=None):
+        if content is not None:
+            if not isinstance(content, list):
+                content = [content]
+            if self.content is not None:
+                self.content += content
+            else:
+                self.content = content
+    
+
+
 class SubredditSearch:
     def __init__(
         self,
