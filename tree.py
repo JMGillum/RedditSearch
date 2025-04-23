@@ -1,8 +1,7 @@
-import math
 from formatString import tabulate
 class Tree:
 
-    def __init__(self,name : str, nodes : list | None,fancy=False):
+    def __init__(self,name:str = None, nodes:list|None = None,fancy=False):
         self.set_name(name)
         self.set_nodes(nodes)
         self.set_fancy(fancy)
