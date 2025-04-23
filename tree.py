@@ -70,24 +70,24 @@ class Tree:
 
 
     def print(self,as_a_string = False):
-        if self.dirty: # Doesn't regenerate tree if no changes have been made.
-            # Sets entire tree as the single child node of tree. Necessary for proper spacing
-            # Saves values so they can be restored after building tree
-            name = self.name
-            nodes = self.nodes
-            child = Tree(name,nodes,fancy=self.fancy)
-            self.name = None
-            self.nodes = [child]
-            # Gets the tree, as a list of lines
-            self.list = self.recursive_generation(True)
-            # Converts the list to a single string
-            self.string = ""
-            for line in self.list:
-                self.string += f"{line}\n"
-            # Restores the original values of the name and nodes.
-            self.name = name
-            self.nodes = nodes
-            self.dirty = False
+        # if self.dirty: # Doesn't regenerate tree if no changes have been made.
+        # Sets entire tree as the single child node of tree. Necessary for proper spacing
+        # Saves values so they can be restored after building tree
+        name = self.name
+        nodes = self.nodes
+        child = Tree(name,nodes,fancy=self.fancy)
+        self.name = None
+        self.nodes = [child]
+        # Gets the tree, as a list of lines
+        self.list = self.recursive_generation(True)
+        # Converts the list to a single string
+        self.string = ""
+        for line in self.list:
+            self.string += f"{line}\n"
+        # Restores the original values of the name and nodes.
+        self.name = name
+        self.nodes = nodes
+        self.dirty = False
         return (self.string if as_a_string else self.list)
 
 
