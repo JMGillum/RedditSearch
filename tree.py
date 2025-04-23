@@ -20,9 +20,9 @@ class Tree:
     
 
     def cascading_update(self,set_fancy=None,line_width=None):
-        if set_fancy:
+        if set_fancy is not None:
             self.cascading_set_fancy(set_fancy)
-        if line_width:
+        if line_width is not None:
             self.cascading_set_line_wrap(line_width)
     
     
