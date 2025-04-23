@@ -344,82 +344,40 @@ class EditSearch:
         scrollingList = scroll.ScrollingList(self.screen, "", tooltip=toolTip)
         page = p.Page()
         content = None
+        onUpdate = None
+        page.update(
+            screen=self.screen,
+            scrollingList=scrollingList,
+            tooltip=toolTip,
+            tooltipTypes=toolTipTypes,
+            onUpdate=onUpdate,
+            content=content,
+            minRows=self.minLines,
+            minCols=self.minCols,
+        )
         match filterValue:
             case 0:
                 content = self.subreddit.titleWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWT,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeWT
             case 1:
                 content = self.subreddit.titleBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBT,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeBT
             case 2:
                 content = self.subreddit.flairWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWF,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeWF
             case 3:
                 content = self.subreddit.flairBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBF,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeBF
             case 4:
                 content = self.subreddit.postWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWP,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeWP
             case 5:
                 content = self.subreddit.postBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBP,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
+                onUpdate=self.treeBP
             case _:
                 return False
         page.updateContent(content)
+        page.update_onUpdate(onUpdate)
         page.switchTooltip("main")
         resized = False
         updated = False
