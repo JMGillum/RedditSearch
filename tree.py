@@ -55,7 +55,7 @@ class Tree:
             # Converts the list to a single string
             self.string = ""
             for line in self.list:
-                self.string += line
+                self.string += f"{line}\n"
             # Restores the original values of the name and nodes.
             self.name = name
             self.nodes = nodes
@@ -75,9 +75,9 @@ class Tree:
         string = []
         if self.name:
             if last:
-                string.append(f"{self.end}{self.name}\n")
+                string.append(f"{self.end}{self.name}")
             else:
-                string.append(f"{self.branch}{self.name}\n")
+                string.append(f"{self.branch}{self.name}")
         for i in range(len(self.nodes)):
             item = self.nodes[i]
             if isinstance(item,str):
@@ -85,7 +85,7 @@ class Tree:
                     string.append(Tree.end)
                 else:
                     string.append(Tree.branch)
-                string[-1] += f"{item}\n"
+                string[-1] += f"{item}"
             elif isinstance(item,Tree):
                 child_last = (i == len(self.nodes)-1)
                 child = item.recursive_generation(child_last)
