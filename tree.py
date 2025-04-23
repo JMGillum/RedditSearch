@@ -41,7 +41,7 @@ class Tree:
             Tree.spaceStart = ""
 
 
-    def to_string(self):
+    def print(self,as_a_string = False):
         if self.dirty: # Doesn't regenerate tree if no changes have been made.
             # Sets entire tree as the single child node of tree. Necessary for proper spacing
             # Saves values so they can be restored after building tree
@@ -51,19 +51,19 @@ class Tree:
             self.name = None
             self.nodes = [child]
             # Gets the tree, as a list of lines
-            string = self.print(True)
+            self.list = self.recursive_generation(True)
             # Converts the list to a single string
             self.string = ""
-            for line in string:
+            for line in self.list:
                 self.string += line
             # Restores the original values of the name and nodes.
             self.name = name
             self.nodes = nodes
             self.dirty = False
-        return self.string
+        return (self.string if as_a_string else self.list)
 
 
-    def print(self,last=False):
+    def recursive_generation(self,last=False):
         """Generates a tree, recursively
 
         Args:
@@ -88,7 +88,7 @@ class Tree:
                 string[-1] += f"{item}\n"
             elif isinstance(item,Tree):
                 child_last = (i == len(self.nodes)-1)
-                child = item.print(child_last)
+                child = item.recursive_generation(child_last)
                 for j in range(1,len(child)):
                     line = child[j]
                     if(i != len(self.nodes) - 1):
