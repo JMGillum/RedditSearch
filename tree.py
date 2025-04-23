@@ -1,14 +1,9 @@
 class Tree:
-    fancy = False
-    pipe = "|"
-    branch = "|->"
-    end = "|->"
-    space = "  "
-    spaceStart = ""
-    string = ""
-    def __init__(self,name : str, nodes : list | None):
+
+    def __init__(self,name : str, nodes : list | None,fancy=False):
         self.set_name(name)
         self.set_nodes(nodes)
+        self.set_fancy(fancy)
         self.dirty = True
         
     
@@ -20,25 +15,37 @@ class Tree:
     def set_nodes(self,nodes: list | None):
         self.nodes = nodes
         self.dirty = True
+    
+    
+    def cascading_set_fancy(self,set_fancy:bool):
+        for item in self.nodes:
+            if isinstance(item,Tree):
+                item.cascading_set_fancy(set_fancy)
+        self.set_fancy(set_fancy)
         
         
-    def set_fancy(set_fancy: bool):
-        Tree.fancy = set_fancy
-        Tree.set_characters()
+    def set_fancy(self,set_fancy:bool):
+        self.fancy = set_fancy
+        self.set_characters()
+    
+    
+    def set_characters(self):
         
-        
-    def set_characters():
-        if Tree.fancy:
-            Tree.pipe = "│"
-            Tree.branch = "├─"
-            Tree.end = "└─"
-            Tree.space = " "
+        if self.fancy:
+            self.pipe = "│"
+            self.branch = "├─"
+            self.end = "└─"
+            self.space = " "
         else:
-            Tree.pipe = "|"
-            Tree.branch = "|->"
-            Tree.end = "|->"
-            Tree.space = "  "
-            Tree.spaceStart = ""
+            self.pipe = "|"
+            self.branch = "|->"
+            self.end = "|->"
+            self.space = "  "
+    
+    
+    def set_term_size(self,width=80,rows=24):
+        self.width = width
+        self.height = rows
 
 
     def print(self,as_a_string = False):
@@ -47,7 +54,7 @@ class Tree:
             # Saves values so they can be restored after building tree
             name = self.name
             nodes = self.nodes
-            child = Tree(name,nodes)
+            child = Tree(name,nodes,fancy=self.fancy)
             self.name = None
             self.nodes = [child]
             # Gets the tree, as a list of lines
@@ -82,9 +89,9 @@ class Tree:
             item = self.nodes[i]
             if isinstance(item,str):
                 if(i == len(self.nodes)-1):
-                    string.append(Tree.end)
+                    string.append(self.end)
                 else:
-                    string.append(Tree.branch)
+                    string.append(self.branch)
                 string[-1] += f"{item}"
             elif isinstance(item,Tree):
                 child_last = (i == len(self.nodes)-1)
@@ -92,10 +99,10 @@ class Tree:
                 for j in range(1,len(child)):
                     line = child[j]
                     if(i != len(self.nodes) - 1):
-                        child[j] = Tree.pipe
+                        child[j] = self.pipe
                     else:
-                        child[j] = Tree.space
-                    child[j] += f"{Tree.space}{line}" 
+                        child[j] = self.space
+                    child[j] += f"{self.space}{line}" 
                 string += child
         return string
     
