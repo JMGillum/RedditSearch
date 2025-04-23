@@ -1,3 +1,5 @@
+import math
+from formatString import tabulate
 class Tree:
 
     def __init__(self,name : str, nodes : list | None,fancy=False):
@@ -23,7 +25,14 @@ class Tree:
                 item.cascading_set_fancy(set_fancy)
         self.set_fancy(set_fancy)
         
+    
+    def cascading_set_line_wrap(self,line_width:int):
+        for item in self.nodes:
+            if isinstance(item,Tree):
+                item.cascading_set_line_wrap(line_width)
+        self.set_line_wrap(line_width)
         
+
     def set_fancy(self,set_fancy:bool):
         self.fancy = set_fancy
         self.set_characters()
@@ -41,11 +50,16 @@ class Tree:
             self.branch = "|->"
             self.end = "|->"
             self.space = "  "
+        self.split_line = "~"
     
     
     def set_term_size(self,width=80,rows=24):
         self.width = width
         self.height = rows
+    
+    
+    def set_line_wrap(self,line_width:int):
+        self.line_wrap = line_width
 
 
     def print(self,as_a_string = False):
@@ -88,11 +102,29 @@ class Tree:
         for i in range(len(self.nodes)):
             item = self.nodes[i]
             if isinstance(item,str):
+                prefix = ""
                 if(i == len(self.nodes)-1):
-                    string.append(self.end)
+                    prefix = self.end
                 else:
-                    string.append(self.branch)
-                string[-1] += f"{item}"
+                    prefix = self.branch
+                try:
+                    if self.line_wrap > 0:
+                        temp = tabulate(item,self.line_wrap,0)
+                        temp = temp.split("\n")
+                        for j in range(len(temp)):
+                            if(temp[j].strip() != ""):
+                                if j == 0:
+                                    string.append(f"{prefix}{temp[j]}")
+                                else:
+                                    if(i == len(self.nodes)-1):
+                                        wrap_prefix = self.space
+                                    else:
+                                        wrap_prefix = self.pipe
+                                    string.append(f"{wrap_prefix}{self.split_line}{temp[j]}") 
+                    else:
+                        string.append(f"{prefix}{item}")
+                except AttributeError:
+                    string.append(f"{prefix}{item}")
             elif isinstance(item,Tree):
                 child_last = (i == len(self.nodes)-1)
                 child = item.recursive_generation(child_last)
