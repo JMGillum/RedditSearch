@@ -29,6 +29,8 @@ class EditSearch:
 
     def launch(self):
         self.editSearch()
+    
+   
 
     def editSearch(self):
         toolTipTypes = {
@@ -601,69 +603,39 @@ class EditSearch:
                         resized = True
 
     def viewSearchTree(self, search):
-        return tree.searchTree(
-            search, curses.COLS, config.fancy_characters, enumerate=True
-        )
+        search.tree.cascading_update(set_fancy=config.fancy_characters)
+        return search.tree.print(as_a_string=False)
+
 
     def viewSubTree(self, subreddit):
-        return tree.subTree(subreddit, curses.COLS, config.fancy_characters)
+        subreddit.tree.cascading_update(set_fancy=config.fancy_characters)
+        return subreddit.tree.print(as_a_string=False)
 
     def treeWT(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Title whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.titleWL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.titleWL.tree.print(as_a_string=False)
+        
 
     def treeBT(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Title blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.titleBL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.titleBL.tree.print(as_a_string=False)
+
 
     def treeWF(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Flair whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.flairWL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.flairWL.tree.print(as_a_string=False)
+
 
     def treeBF(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Flair blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.flairBL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.flairBL.tree.print(as_a_string=False)
+
 
     def treeWP(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Post whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.postWL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.postWL.tree.print(as_a_string=False)
+
 
     def treeBP(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Post blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+        self.subreddit.postBL.tree.cascading_update(set_fancy=config.fancy_characters)
+        return self.subreddit.postBL.tree.print(as_a_string=False)
