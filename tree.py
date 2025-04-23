@@ -26,16 +26,18 @@ class Tree:
     
     
     def cascading_set_fancy(self,set_fancy:bool):
-        for item in self.nodes:
-            if isinstance(item,Tree):
-                item.cascading_set_fancy(set_fancy)
+        if self.nodes is not None:
+            for item in self.nodes:
+                if isinstance(item,Tree):
+                    item.cascading_set_fancy(set_fancy)
         self.set_fancy(set_fancy)
         
     
     def cascading_set_line_wrap(self,line_width:int):
-        for item in self.nodes:
-            if isinstance(item,Tree):
-                item.cascading_set_line_wrap(line_width)
+        if self.nodes is not None:
+            for item in self.nodes:
+                if isinstance(item,Tree):
+                    item.cascading_set_line_wrap(line_width)
         self.set_line_wrap(line_width)
         
 
@@ -116,41 +118,42 @@ class Tree:
                     string.append(f"{prefix}{self.name}")
             except AttributeError:
                     string.append(f"{prefix}{self.name}")
-        for i in range(len(self.nodes)):
-            item = self.nodes[i]
-            if isinstance(item,str):
-                prefix = self.end if (i==len(self.nodes)-1) else self.branch
-                try:
-                    if self.line_wrap > 0:
-                        temp = tabulate(item,self.line_wrap,0)
-                        temp = temp.split("\n")
-                        for j in range(len(temp)):
-                            if(temp[j].strip() != ""):
-                                if j == 0:
-                                    string.append(f"{prefix}{temp[j]}")
-                                else:
-                                    if(i == len(self.nodes)-1):
-                                        wrap_prefix = self.space
+        if self.nodes is not None:
+            for i in range(len(self.nodes)):
+                item = self.nodes[i]
+                if isinstance(item,str):
+                    prefix = self.end if (i==len(self.nodes)-1) else self.branch
+                    try:
+                        if self.line_wrap > 0:
+                            temp = tabulate(item,self.line_wrap,0)
+                            temp = temp.split("\n")
+                            for j in range(len(temp)):
+                                if(temp[j].strip() != ""):
+                                    if j == 0:
+                                        string.append(f"{prefix}{temp[j]}")
                                     else:
-                                        wrap_prefix = self.pipe
-                                    string.append(f"{wrap_prefix}{self.split_line}{temp[j]}") 
-                    else:
+                                        if(i == len(self.nodes)-1):
+                                            wrap_prefix = self.space
+                                        else:
+                                            wrap_prefix = self.pipe
+                                        string.append(f"{wrap_prefix}{self.split_line}{temp[j]}") 
+                        else:
+                            string.append(f"{prefix}{item}")
+                    except AttributeError:
                         string.append(f"{prefix}{item}")
-                except AttributeError:
-                    string.append(f"{prefix}{item}")
-            elif isinstance(item,Tree):
-                child_last = (i == len(self.nodes)-1)
-                child = item.recursive_generation(child_last)
-                for j in range(1,len(child)):
-                    line = child[j]
-                    if(i != len(self.nodes) - 1):
-                        child[j] = self.pipe
-                    else:
-                        child[j] = self.space
-                    if len(line) > 0 and line[0] != self.split_line:
-                        child[j] += self.space
-                    child[j] += line
-                string += child
+                elif isinstance(item,Tree):
+                    child_last = (i == len(self.nodes)-1)
+                    child = item.recursive_generation(child_last)
+                    for j in range(1,len(child)):
+                        line = child[j]
+                        if(i != len(self.nodes) - 1):
+                            child[j] = self.pipe
+                        else:
+                            child[j] = self.space
+                        if len(line) > 0 and line[0] != self.split_line:
+                            child[j] += self.space
+                        child[j] += line
+                    string += child
         return string
     
 
