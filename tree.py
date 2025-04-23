@@ -9,14 +9,17 @@ class Tree:
     def __init__(self,name : str, nodes : list | None):
         self.set_name(name)
         self.set_nodes(nodes)
+        self.dirty = True
         
     
     def set_name(self,name:str):
         self.name = name
+        self.dirty = True
     
 
     def set_nodes(self,nodes: list | None):
         self.nodes = nodes
+        self.dirty = True
         
         
     def set_fancy(set_fancy: bool):
@@ -39,19 +42,42 @@ class Tree:
 
 
     def to_string(self):
-        string = self.print(True)
-        self.string = ""
-        for line in string:
-            self.string += line
+        if self.dirty: # Doesn't regenerate tree if no changes have been made.
+            # Sets entire tree as the single child node of tree. Necessary for proper spacing
+            # Saves values so they can be restored after building tree
+            name = self.name
+            nodes = self.nodes
+            child = Tree(name,nodes)
+            self.name = None
+            self.nodes = [child]
+            # Gets the tree, as a list of lines
+            string = self.print(True)
+            # Converts the list to a single string
+            self.string = ""
+            for line in string:
+                self.string += line
+            # Restores the original values of the name and nodes.
+            self.name = name
+            self.nodes = nodes
+            self.dirty = False
         return self.string
 
 
     def print(self,last=False):
+        """Generates a tree, recursively
+
+        Args:
+            last (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
         string = []
-        if last:
-            string.append(f"{self.end}{self.name}\n")
-        else:
-            string.append(f"{self.branch}{self.name}\n")
+        if self.name:
+            if last:
+                string.append(f"{self.end}{self.name}\n")
+            else:
+                string.append(f"{self.branch}{self.name}\n")
         for i in range(len(self.nodes)):
             item = self.nodes[i]
             if isinstance(item,str):
@@ -73,8 +99,6 @@ class Tree:
                 string += child
         return string
     
-    def getText(self):
-        return "<TEST>"
 
 
 def placeItem(name, showBeginning, showMiddle, last, width=80, fancy=False):
