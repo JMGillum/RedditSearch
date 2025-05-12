@@ -254,7 +254,7 @@ class EditSearch:
             # Gets input from the user
 
             filterInput = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match filterInput:
@@ -393,7 +393,7 @@ class EditSearch:
             # Gets input from the user
 
             input = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match input:
