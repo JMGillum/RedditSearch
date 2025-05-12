@@ -240,7 +240,10 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
                             del searches[val]
                             return -3
                         elif char == "view":  # Views search
-                            if viewSearch(screen, searches[val]):
+                            status = viewSearch(screen,searches[val])
+                            if status:
+                                searches[val] = status
+                            else:
                                 return -3
                         else:  # Selects search
                             return val
@@ -322,9 +325,9 @@ def viewSearch(screen, search, minCols=80, minLines=24):
                     answer = getInput(screen, col=31).lower()
                     if not (answer == "y" or answer == "yes"):
                         search = originalSearch
-                        return False
+                        return originalSearch
                     else:
-                        return True
+                        return False
 
                 case _:
                     viewPage.manipulate(viewChar)
