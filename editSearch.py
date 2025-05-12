@@ -5,7 +5,6 @@ import functions
 import page as p
 import scroll
 import search
-import tree
 import keybindings as kb
 
 
@@ -254,7 +253,7 @@ class EditSearch:
             # Gets input from the user
 
             filterInput = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match filterInput:
@@ -291,7 +290,7 @@ class EditSearch:
 
                         # Checks if it is within the bounds of post numbersS
                         if val >= 0 and val < 6:
-                            changes = self.editFilter(index, val)
+                            changes = self.editFilter(filterValue = val)
                             if changes["resized"]:
                                 resized = True
                                 page.resize()
@@ -304,7 +303,7 @@ class EditSearch:
                     if page.manipulate(filterInput) == 1:
                         resized = True
 
-    def editFilter(self, index, filterValue):
+    def editFilter(self, filterValue):
         match filterValue:
             case 0:
                 return self.editFilterIndividual(self.subreddit.titleWL)
@@ -320,263 +319,6 @@ class EditSearch:
                 return self.editFilterIndividual(self.subreddit.postBL)
             case _:
                 return False
-        """
-        toolTipTypes = {
-            "main": [
-                scroll.Line(
-                    ["<-- Line %i/%i -- >", "(a) add, (d) delete, or (q) quit"],
-                    [0, "max-33"],
-                    curses.COLS,
-                )
-            ],
-            "press": [
-                scroll.Line(
-                    [
-                        "Enter a filter number (1-%i), then press enter:",
-                        "(press q to exit)",
-                    ],
-                    [0, "max-18"],
-                    curses.COLS,
-                )
-            ],
-            "enter": [
-                scroll.Line(
-                    [
-                        "Enter a filter number (1-%i), then press enter:",
-                        "(enter q to exit)",
-                    ],
-                    [0, "max-18"],
-                    curses.COLS,
-                )
-            ],
-            "input": [
-                scroll.Line(
-                    ["Enter the filter, then press enter:"],
-                    [0],
-                    curses.COLS,
-                )
-            ],
-        }
-        toolTip = scroll.ToolTip(toolTipTypes["main"])
-        scrollingList = scroll.ScrollingList(self.screen, "", tooltip=toolTip)
-        page = p.Page()
-        content = None
-        onUpdate = None
-        page.update(
-            screen=self.screen,
-            scrollingList=scrollingList,
-            tooltip=toolTip,
-            tooltipTypes=toolTipTypes,
-            onUpdate=onUpdate,
-            content=content,
-            minRows=self.minLines,
-            minCols=self.minCols,
-        )
-        match filterValue:
-            case 0:
-                content = self.subreddit.titleWL
-                onUpdate=self.treeWT
-            case 1:
-                content = self.subreddit.titleBL
-                onUpdate=self.treeBT
-            case 2:
-                content = self.subreddit.flairWL
-                onUpdate=self.treeWF
-            case 3:
-                content = self.subreddit.flairBL
-                onUpdate=self.treeBF
-            case 4:
-                content = self.subreddit.postWL
-                onUpdate=self.treeWP
-            case 5:
-                content = self.subreddit.postBL
-                onUpdate=self.treeBP
-            case _:
-                return False
-        page.updateContent(content)
-        page.update_onUpdate(onUpdate)
-        page.switchTooltip("main")
-        resized = False
-        updated = False
-
-        while True:
-            # Updates the tooltip, and prints the headers to the screen
-            page.refreshTooltip(
-                "main", [page.currentLine() + 1, scrollingList.maxLine + 1], print=True
-            )
-
-            # Gets input from the user
-
-            input = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
-            )
-
-            match input:
-                case "timeout":
-                    continue
-                case "exit":
-                    return {"resized": resized, "updated": updated}
-                case "add":
-                    page.refreshTooltip("input", print=True)
-                    name = functions.getInput(self.screen, col=36)
-                    match filterValue:
-                        case 0:
-                            self.subreddit.add(titleWL=name)
-                            content = self.subreddit.titleWL
-                        case 1:
-                            self.subreddit.add(titleBL=name)
-                            content = self.subreddit.titleBL
-                        case 2:
-                            self.subreddit.add(flairWL=name)
-                            content = self.subreddit.flairWL
-                        case 3:
-                            self.subreddit.add(flairBL=name)
-                            content = self.subreddit.flairBL
-                        case 4:
-                            self.subreddit.add(postWL=name)
-                            content = self.subreddit.postWL
-                        case 5:
-                            self.subreddit.add(postBL=name)
-                            content = self.subreddit.postBL
-                    page.updateContent(content)
-                    updated = True
-
-                    match filterValue:
-                        case 0:
-                            pass
-                case "delete":
-                    # Updates the tooltip and places the cursor for input
-                    match filterValue:
-                        case 0:
-                            if self.subreddit.titleWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.titleWL), print=True
-                                )
-                            else:
-                                continue
-                        case 1:
-                            if self.subreddit.titleBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.titleBL), print=True
-                                )
-                            else:
-                                continue
-                        case 2:
-                            if self.subreddit.flairWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.flairWL), print=True
-                                )
-                            else:
-                                continue
-                        case 3:
-                            if self.subreddit.flairBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.flairBL), print=True
-                                )
-                            else:
-                                continue
-                        case 4:
-                            if self.subreddit.postWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.postWL), print=True
-                                )
-                            else:
-                                continue
-                        case 5:
-                            if self.subreddit.postBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.postBL), print=True
-                                )
-                            else:
-                                continue
-
-                    functions.placeCursor(self.screen, x=48, y=curses.LINES - 1)
-                    c = self.screen.getch()  # Gets the character they type
-                    if c == ord("q"):  # Immediately exits if they pressed q
-                        continue
-
-                    else:  # Otherwise
-                        # Update prompt to tell them to 'enter q" instead of 'press q"
-                        match filterValue:
-                            case 0:
-                                if self.subreddit.titleWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.titleWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 1:
-                                if self.subreddit.titleBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.titleBL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 2:
-                                if self.subreddit.flairWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.flairWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 3:
-                                if self.subreddit.flairBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.flairBL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 4:
-                                if self.subreddit.postWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.postWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 5:
-                                if self.subreddit.postBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.postBL), print=True
-                                    )
-                                else:
-                                    continue
-
-                        string = functions.getInput(screen=self.screen, unget=c, col=48)
-
-                        # Attempts to convert their input into an integer.
-                        val = 0
-                        try:
-                            val = int(string) - 1
-                        except ValueError:
-                            continue
-
-                        # Checks if it is within the bounds of post numbers
-                        match filterValue:
-                            case 0:
-                                if val >= 0 and val < len(self.subreddit.titleWL):
-                                    del self.subreddit.titleWL[val]
-                            case 1:
-                                if val >= 0 and val < len(self.subreddit.titleBL):
-                                    del self.subreddit.titleBL[val]
-                            case 2:
-                                if val >= 0 and val < len(self.subreddit.flairWL):
-                                    del self.subreddit.flairWL[val]
-                            case 3:
-                                if val >= 0 and val < len(self.subreddit.flairBL):
-                                    del self.subreddit.flairBL[val]
-                            case 4:
-                                if val >= 0 and val < len(self.subreddit.postWL):
-                                    del self.subreddit.postWL[val]
-                            case 5:
-                                if val >= 0 and val < len(self.subreddit.postBL):
-                                    del self.subreddit.postBL[val]
-
-                        page.updateContent()
-
-                case _:
-                    if page.manipulate(input) == 1:
-                        resized = True
-        """
 
     
     def editFilterIndividual(self, filter):
@@ -650,7 +392,7 @@ class EditSearch:
             # Gets input from the user
 
             input = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match input:
@@ -729,31 +471,3 @@ class EditSearch:
         filter.tree.cascading_update(set_fancy=config.fancy_characters)
         return filter.tree.print(as_a_string=False)
     
-    def treeWT(self, filterContent):
-        self.subreddit.titleWL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.titleWL.tree.print(as_a_string=False)
-        
-
-    def treeBT(self, filterContent):
-        self.subreddit.titleBL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.titleBL.tree.print(as_a_string=False)
-
-
-    def treeWF(self, filterContent):
-        self.subreddit.flairWL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.flairWL.tree.print(as_a_string=False)
-
-
-    def treeBF(self, filterContent):
-        self.subreddit.flairBL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.flairBL.tree.print(as_a_string=False)
-
-
-    def treeWP(self, filterContent):
-        self.subreddit.postWL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.postWL.tree.print(as_a_string=False)
-
-
-    def treeBP(self, filterContent):
-        self.subreddit.postBL.tree.cascading_update(set_fancy=config.fancy_characters)
-        return self.subreddit.postBL.tree.print(as_a_string=False)

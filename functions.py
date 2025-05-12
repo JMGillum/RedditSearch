@@ -11,8 +11,6 @@ from datetime import timezone
 
 # Provided
 import search
-from tree import searchTree
-import tree
 import formatString
 import scroll
 import dump
