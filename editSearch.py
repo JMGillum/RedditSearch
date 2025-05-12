@@ -305,6 +305,21 @@ class EditSearch:
                         resized = True
 
     def editFilter(self, index, filterValue):
+        match filterValue:
+            case 0:
+                return self.editFilterIndividual(self.subreddit.titleWL)
+            case 1:
+                return self.editFilterIndividual(self.subreddit.titleBL)
+            case 2:
+                return self.editFilterIndividual(self.subreddit.flairWL)
+            case 3:
+                return self.editFilterIndividual(self.subreddit.flairBL)
+            case 4:
+                return self.editFilterIndividual(self.subreddit.postWL)
+            case 5:
+                return self.editFilterIndividual(self.subreddit.postBL)
+            case _:
+                return False
         toolTipTypes = {
             "main": [
                 scroll.Line(
@@ -561,6 +576,143 @@ class EditSearch:
                     if page.manipulate(input) == 1:
                         resized = True
 
+    
+    def editFilterIndividual(self, filter):
+        toolTipTypes = {
+            "main": [
+                scroll.Line(
+                    ["<-- Line %i/%i -- >", "(a) add, (d) delete, or (q) quit"],
+                    [0, "max-33"],
+                    curses.COLS,
+                )
+            ],
+            "press": [
+                scroll.Line(
+                    [
+                        "Enter a filter number (1-%i), then press enter:",
+                        "(press q to exit)",
+                    ],
+                    [0, "max-18"],
+                    curses.COLS,
+                )
+            ],
+            "enter": [
+                scroll.Line(
+                    [
+                        "Enter a filter number (1-%i), then press enter:",
+                        "(enter q to exit)",
+                    ],
+                    [0, "max-18"],
+                    curses.COLS,
+                )
+            ],
+            "input": [
+                scroll.Line(
+                    ["Enter the filter, then press enter:"],
+                    [0],
+                    curses.COLS,
+                )
+            ],
+        }
+        toolTip = scroll.ToolTip(toolTipTypes["main"])
+        scrollingList = scroll.ScrollingList(self.screen, "", tooltip=toolTip)
+        page = p.Page()
+        content = None
+        onUpdate = None
+        page.update(
+            screen=self.screen,
+            scrollingList=scrollingList,
+            tooltip=toolTip,
+            tooltipTypes=toolTipTypes,
+            onUpdate=onUpdate,
+            content=content,
+            minRows=self.minLines,
+            minCols=self.minCols,
+        )
+        content = filter
+        onUpdate = self.filterUpdate
+        
+        page.update_onUpdate(onUpdate)
+        page.updateContent(content)
+        
+        page.switchTooltip("main")
+        resized = False
+        updated = False
+
+        while True:
+            # Updates the tooltip, and prints the headers to the screen
+            page.refreshTooltip(
+                "main", [page.currentLine() + 1, scrollingList.maxLine + 1], print=True
+            )
+
+            # Gets input from the user
+
+            input = functions.eventListener(
+                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+            )
+
+            match input:
+                case "timeout":
+                    continue
+                case "exit":
+                    return {"resized": resized, "updated": updated}
+                case "add":
+                    page.refreshTooltip("input", print=True)
+                    name = functions.getInput(self.screen, col=36)
+                    filter.add(name)
+                    content = filter
+                    
+                    page.updateContent(content)
+                    updated = True
+
+                    
+                case "delete":
+                    # Updates the tooltip and places the cursor for input
+                    if filter is not None:
+                        page.refreshTooltip(
+                            "press", len(filter.content), print=True
+                        )
+                    else:
+                        continue
+                    
+
+                    functions.placeCursor(self.screen, x=48, y=curses.LINES - 1)
+                    c = self.screen.getch()  # Gets the character they type
+                    if c == ord("q"):  # Immediately exits if they pressed q
+                        continue
+
+                    else:  # Otherwise
+                        # Update prompt to tell them to 'enter q" instead of 'press q"
+                        if filter is not None:
+                            page.refreshTooltip(
+                                "enter", len(filter.content), print=True
+                            )
+                        else:
+                            continue
+                        
+
+                        string = functions.getInput(screen=self.screen, unget=c, col=48)
+
+                        # Attempts to convert their input into an integer.
+                        val = 0
+                        try:
+                            val = int(string) - 1
+                        except ValueError:
+                            continue
+
+                        # Checks if it is within the bounds of post numbers
+                        if val >= 0 and val < len(filter.content):
+                            del filter.content[val]
+
+                        page.updateContent()
+
+                case _:
+                    if page.manipulate(input) == 1:
+                        resized = True
+            
+        
+    
+    
     def viewSearchTree(self, search):
         search.tree.cascading_update(set_fancy=config.fancy_characters)
         return search.tree.print(as_a_string=False)
@@ -570,6 +722,10 @@ class EditSearch:
         subreddit.tree.cascading_update(set_fancy=config.fancy_characters)
         return subreddit.tree.print(as_a_string=False)
 
+    def filterUpdate(self,filter):
+        filter.tree.cascading_update(set_fancy=config.fancy_characters)
+        return filter.tree.print(as_a_string=False)
+    
     def treeWT(self, filterContent):
         self.subreddit.titleWL.tree.cascading_update(set_fancy=config.fancy_characters)
         return self.subreddit.titleWL.tree.print(as_a_string=False)

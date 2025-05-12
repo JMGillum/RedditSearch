@@ -26,7 +26,7 @@ class Filter:
                 self.content += content
             else:
                 self.content = content
-            self.tree.set_nodes(content)
+            self.tree.set_nodes(self.content)
     
 
 
