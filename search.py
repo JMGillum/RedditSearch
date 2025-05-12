@@ -22,7 +22,7 @@ class Filter:
         if content is not None:
             if not isinstance(content, list):
                 content = [content]
-            if self.content is not None:
+            if self.content is not None and not self.content == "":
                 self.content += content
             else:
                 self.content = content
