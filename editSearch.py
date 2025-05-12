@@ -320,6 +320,7 @@ class EditSearch:
                 return self.editFilterIndividual(self.subreddit.postBL)
             case _:
                 return False
+        """
         toolTipTypes = {
             "main": [
                 scroll.Line(
@@ -575,6 +576,7 @@ class EditSearch:
                 case _:
                     if page.manipulate(input) == 1:
                         resized = True
+        """
 
     
     def editFilterIndividual(self, filter):
@@ -703,6 +705,7 @@ class EditSearch:
                         # Checks if it is within the bounds of post numbers
                         if val >= 0 and val < len(filter.content):
                             del filter.content[val]
+                            updated = True
 
                         page.updateContent()
 
