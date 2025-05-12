@@ -573,34 +573,34 @@ def filterPost(post, subSearch):
     # Check blacklists
 
     if title is not None and subSearch.titleBL is not None:
-        for t in subSearch.titleBL:
+        for t in subSearch.titleBL.content:
             if t.lower() in title.lower():
                 return False
 
     if flair is not None and subSearch.flairBL is not None:
-        for f in subSearch.flairBL:
+        for f in subSearch.flairBL.content:
             if f.lower() in flair.lower():
                 return False
 
     if content is not None and subSearch.postBL is not None:
-        for c in subSearch.postBL:
+        for c in subSearch.postBL.content:
             if c.lower() in content.lower():
                 return False
 
     # Check whitelists
 
     if title is not None and subSearch.titleWL is not None:
-        for t in subSearch.titleWL:
+        for t in subSearch.titleWL.content:
             if t.lower() in title.lower():
                 return True
 
     if flair is not None and subSearch.flairWL is not None:
-        for f in subSearch.flairWL:
+        for f in subSearch.flairWL.content:
             if f.lower() in flair.lower():
                 return True
 
     if content is not None and subSearch.postWL is not None:
-        for c in subSearch.postWL:
+        for c in subSearch.postWL.content:
             if c.lower() in content.lower():
                 return True
 
