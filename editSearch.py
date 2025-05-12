@@ -5,7 +5,6 @@ import functions
 import page as p
 import scroll
 import search
-import tree
 import keybindings as kb
 
 
