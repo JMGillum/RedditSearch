@@ -18,11 +18,13 @@ class Tree:
         self.dirty = True
     
 
-    def cascading_update(self,set_fancy=None,line_width=None):
+    def cascading_update(self,set_fancy=None,line_width=None, term_width=None):
         if set_fancy is not None:
             self.cascading_set_fancy(set_fancy)
         if line_width is not None:
             self.cascading_set_line_wrap(line_width)
+        if term_width is not None:
+            self.cascading_set_term_size(term_width)
     
     
     def cascading_set_fancy(self,set_fancy:bool):
@@ -33,6 +35,14 @@ class Tree:
         self.set_fancy(set_fancy)
         
     
+    def cascading_set_term_size(self,width:int):
+        if self.nodes is not None:
+            for item in self.nodes:
+                if isinstance(item,Tree):
+                    item.cascading_set_term_size(width)
+        self.set_term_size(width)
+
+
     def cascading_set_line_wrap(self,line_width:int):
         if self.nodes is not None:
             for item in self.nodes:
@@ -61,9 +71,8 @@ class Tree:
         self.split_line = "~"
     
     
-    def set_term_size(self,width=80,rows=24):
+    def set_term_size(self,width=80):
         self.width = width
-        self.height = rows
     
     
     def set_line_wrap(self,line_width:int):
@@ -124,8 +133,13 @@ class Tree:
                 if isinstance(item,str):
                     prefix = self.end if (i==len(self.nodes)-1) else self.branch
                     try:
-                        if self.line_wrap > 0:
-                            temp = tabulate(item,self.line_wrap,0)
+                        wrap = None
+                        if self.line_wrap is not None and self.line_wrap > 0:
+                            wrap = self.line_wrap
+                        if self.width is not None and self.width > 0:
+                            wrap = self.width - len(prefix)
+                        if wrap is not None:
+                            temp = tabulate(item,wrap,0)
                             temp = temp.split("\n")
                             for j in range(len(temp)):
                                 if(temp[j].strip() != ""):
