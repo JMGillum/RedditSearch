@@ -1,13 +1,17 @@
 from formatString import tabulate
 class Tree:
 
-    def __init__(self,name:str = None, nodes:list|None = None,fancy=False):
+    def __init__(self,name:str = None, nodes:list|None = None,fancy=False,wrap=None,width=None):
         self.set_name(name)
         self.set_nodes(nodes)
         self.set_fancy(fancy)
         self.dirty = True
-        self.width = -1
-        self.line_wrap = -1
+        if width is None:
+            width = -1
+        if wrap is None:
+            wrap = -1
+        self.set_term_size(width)
+        self.set_line_wrap(wrap)
         
     
     def set_name(self,name:str):
@@ -74,11 +78,13 @@ class Tree:
     
     
     def set_term_size(self,width=80):
-        self.width = width
+        if width is not None:
+            self.width = width
     
     
     def set_line_wrap(self,line_width:int):
-        self.line_wrap = line_width
+        if line_width is not None:
+            self.line_wrap = line_width
 
 
     def print(self,as_a_string = False):
@@ -87,7 +93,7 @@ class Tree:
         # Saves values so they can be restored after building tree
         name = self.name
         nodes = self.nodes
-        child = Tree(name,nodes,fancy=self.fancy)
+        child = Tree(name,nodes,fancy=self.fancy,wrap=self.line_wrap,width=self.width)
         self.name = None
         self.nodes = [child]
         # Gets the tree, as a list of lines

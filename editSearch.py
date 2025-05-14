@@ -381,6 +381,7 @@ class EditSearch:
         page.updateContent(content)
         
         page.switchTooltip("main")
+        page.updateContent()
         resized = False
         updated = False
 
