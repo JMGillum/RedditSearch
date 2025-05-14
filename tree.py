@@ -6,6 +6,8 @@ class Tree:
         self.set_nodes(nodes)
         self.set_fancy(fancy)
         self.dirty = True
+        self.width = -1
+        self.line_wrap = -1
         
     
     def set_name(self,name:str):

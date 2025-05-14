@@ -88,6 +88,7 @@ class EditSearch:
             minCols=self.minCols,
         )
         page.switchTooltip("main")
+        
 
         while True:
             # Updates the tooltip, and prints the headers to the screen
