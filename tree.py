@@ -109,7 +109,7 @@ class Tree:
         return (self.string if as_a_string else self.list)
 
 
-    def recursive_generation(self,last=False):
+    def recursive_generation(self,last=False,prior_prefix=0):
         """Generates a tree, recursively
 
         Args:
@@ -145,7 +145,7 @@ class Tree:
                         if self.line_wrap is not None and self.line_wrap > 0:
                             wrap = self.line_wrap
                         if self.width is not None and self.width > 0:
-                            wrap = self.width - len(prefix)
+                            wrap = self.width - len(prefix) - prior_prefix
                         if wrap is not None:
                             temp = tabulate(item,wrap,0)
                             temp = temp.split("\n")
@@ -165,7 +165,8 @@ class Tree:
                         string.append(f"{prefix}{item}")
                 elif isinstance(item,Tree):
                     child_last = (i == len(self.nodes)-1)
-                    child = item.recursive_generation(child_last)
+                    prefix = self.end if last else self.branch
+                    child = item.recursive_generation(child_last,len(prefix)+prior_prefix)
                     for j in range(1,len(child)):
                         line = child[j]
                         if(i != len(self.nodes) - 1):
