@@ -460,15 +460,15 @@ class EditSearch:
     
     
     def viewSearchTree(self, search):
-        search.tree.cascading_update(set_fancy=config.fancy_characters)
+        search.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
         return search.tree.print(as_a_string=False)
 
 
     def viewSubTree(self, subreddit):
-        subreddit.tree.cascading_update(set_fancy=config.fancy_characters)
+        subreddit.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
         return subreddit.tree.print(as_a_string=False)
 
     def filterUpdate(self,filter):
-        filter.tree.cascading_update(set_fancy=config.fancy_characters)
+        filter.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
         return filter.tree.print(as_a_string=False)
     

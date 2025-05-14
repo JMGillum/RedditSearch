@@ -252,7 +252,7 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
 
 
 def viewSearchUpdate(search):
-    search.tree.cascading_update(set_fancy=config.fancy_characters)
+    search.tree.cascading_update(set_fancy=config.fancy_characters,term_width = curses.COLS)
     return search.tree.print(as_a_string=False)
     # return searchTree(search, curses.COLS, config.fancy_characters)
 
@@ -283,7 +283,7 @@ def viewSearch(screen, search, minCols=80, minLines=24):
         }
         toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
 
-        search.tree.cascading_set_term_size(curses.COLS)
+        # search.tree.cascading_set_term_size(curses.COLS)
         view = viewSearchUpdate(search)
         page = scroll.ScrollingList(screen, view, 0, toolTip)
         viewPage = p.Page(
