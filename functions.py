@@ -252,7 +252,7 @@ def getSearchNum(screen, searches, minCols=80, minLines=24):
 
 
 def viewSearchUpdate(search):
-    search.tree.cascading_update(set_fancy=config.fancy_characters)
+    search.tree.cascading_update(set_fancy=config.fancy_characters,term_width = curses.COLS)
     return search.tree.print(as_a_string=False)
     # return searchTree(search, curses.COLS, config.fancy_characters)
 
@@ -263,12 +263,15 @@ def viewSearch(screen, search, minCols=80, minLines=24):
     """
 
     if search is not None:
+        targets = ["enter","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipType = "main"
         toolTipTypes = {
             "main": [
                 scroll.Line("", 0, curses.COLS),
                 scroll.Line(
-                    ["<-- Line %i -- >", "press (e) to edit or (q) to exit"],
+                    ["<-- Line %i -- >", f"press ({showKeyBind(matches[0])}) to edit or ({showKeyBind(matches[1])}) to exit"],
                     [0, "max-33"],
                     curses.COLS,
                 ),
@@ -283,6 +286,7 @@ def viewSearch(screen, search, minCols=80, minLines=24):
         }
         toolTip = scroll.ToolTip(toolTipTypes[toolTipType])
 
+        # search.tree.cascading_set_term_size(curses.COLS)
         view = viewSearchUpdate(search)
         page = scroll.ScrollingList(screen, view, 0, toolTip)
         viewPage = p.Page(
@@ -573,34 +577,34 @@ def filterPost(post, subSearch):
     # Check blacklists
 
     if title is not None and subSearch.titleBL is not None:
-        for t in subSearch.titleBL:
+        for t in subSearch.titleBL.content:
             if t.lower() in title.lower():
                 return False
 
     if flair is not None and subSearch.flairBL is not None:
-        for f in subSearch.flairBL:
+        for f in subSearch.flairBL.content:
             if f.lower() in flair.lower():
                 return False
 
     if content is not None and subSearch.postBL is not None:
-        for c in subSearch.postBL:
+        for c in subSearch.postBL.content:
             if c.lower() in content.lower():
                 return False
 
     # Check whitelists
 
     if title is not None and subSearch.titleWL is not None:
-        for t in subSearch.titleWL:
+        for t in subSearch.titleWL.content:
             if t.lower() in title.lower():
                 return True
 
     if flair is not None and subSearch.flairWL is not None:
-        for f in subSearch.flairWL:
+        for f in subSearch.flairWL.content:
             if f.lower() in flair.lower():
                 return True
 
     if content is not None and subSearch.postWL is not None:
-        for c in subSearch.postWL:
+        for c in subSearch.postWL.content:
             if c.lower() in content.lower():
                 return True
 

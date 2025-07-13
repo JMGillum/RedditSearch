@@ -1,11 +1,17 @@
 from formatString import tabulate
 class Tree:
 
-    def __init__(self,name:str = None, nodes:list|None = None,fancy=False):
+    def __init__(self,name:str = None, nodes:list|None = None,fancy=False,wrap=None,width=None):
         self.set_name(name)
         self.set_nodes(nodes)
         self.set_fancy(fancy)
         self.dirty = True
+        if width is None:
+            width = -1
+        if wrap is None:
+            wrap = -1
+        self.set_term_size(width)
+        self.set_line_wrap(wrap)
         
     
     def set_name(self,name:str):
@@ -18,11 +24,13 @@ class Tree:
         self.dirty = True
     
 
-    def cascading_update(self,set_fancy=None,line_width=None):
+    def cascading_update(self,set_fancy=None,line_width=None, term_width=None):
         if set_fancy is not None:
             self.cascading_set_fancy(set_fancy)
         if line_width is not None:
             self.cascading_set_line_wrap(line_width)
+        if term_width is not None:
+            self.cascading_set_term_size(term_width)
     
     
     def cascading_set_fancy(self,set_fancy:bool):
@@ -33,6 +41,14 @@ class Tree:
         self.set_fancy(set_fancy)
         
     
+    def cascading_set_term_size(self,width:int):
+        if self.nodes is not None:
+            for item in self.nodes:
+                if isinstance(item,Tree):
+                    item.cascading_set_term_size(width)
+        self.set_term_size(width)
+
+
     def cascading_set_line_wrap(self,line_width:int):
         if self.nodes is not None:
             for item in self.nodes:
@@ -61,13 +77,14 @@ class Tree:
         self.split_line = "~"
     
     
-    def set_term_size(self,width=80,rows=24):
-        self.width = width
-        self.height = rows
+    def set_term_size(self,width=80):
+        if width is not None:
+            self.width = width
     
     
     def set_line_wrap(self,line_width:int):
-        self.line_wrap = line_width
+        if line_width is not None:
+            self.line_wrap = line_width
 
 
     def print(self,as_a_string = False):
@@ -76,7 +93,7 @@ class Tree:
         # Saves values so they can be restored after building tree
         name = self.name
         nodes = self.nodes
-        child = Tree(name,nodes,fancy=self.fancy)
+        child = Tree(name,nodes,fancy=self.fancy,wrap=self.line_wrap,width=self.width)
         self.name = None
         self.nodes = [child]
         # Gets the tree, as a list of lines
@@ -92,7 +109,7 @@ class Tree:
         return (self.string if as_a_string else self.list)
 
 
-    def recursive_generation(self,last=False):
+    def recursive_generation(self,last=False,prior_prefix=0):
         """Generates a tree, recursively
 
         Args:
@@ -124,8 +141,13 @@ class Tree:
                 if isinstance(item,str):
                     prefix = self.end if (i==len(self.nodes)-1) else self.branch
                     try:
-                        if self.line_wrap > 0:
-                            temp = tabulate(item,self.line_wrap,0)
+                        wrap = None
+                        if self.line_wrap is not None and self.line_wrap > 0:
+                            wrap = self.line_wrap
+                        if self.width is not None and self.width > 0:
+                            wrap = self.width - len(prefix) - prior_prefix
+                        if wrap is not None:
+                            temp = tabulate(item,wrap,0)
                             temp = temp.split("\n")
                             for j in range(len(temp)):
                                 if(temp[j].strip() != ""):
@@ -143,7 +165,8 @@ class Tree:
                         string.append(f"{prefix}{item}")
                 elif isinstance(item,Tree):
                     child_last = (i == len(self.nodes)-1)
-                    child = item.recursive_generation(child_last)
+                    prefix = self.end if last else self.branch
+                    child = item.recursive_generation(child_last,len(prefix)+prior_prefix)
                     for j in range(1,len(child)):
                         line = child[j]
                         if(i != len(self.nodes) - 1):
