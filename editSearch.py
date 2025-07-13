@@ -5,7 +5,6 @@ import functions
 import page as p
 import scroll
 import search
-import tree
 import keybindings as kb
 
 
@@ -13,6 +12,7 @@ class EditSearch:
     def __init__(self, screen, search, minCols=80, minLines=24, launch=True):
         self.update(screen, search, minCols, minLines)
         self.subreddit = None
+       
 
         if launch:
             return self.launch()
@@ -29,14 +29,19 @@ class EditSearch:
 
     def launch(self):
         self.editSearch()
+    
+   
 
     def editSearch(self):
+        targets = ["add","enter","delete","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
                     [
                         "<-- Line %i/%i -- >",
-                        "(a) add, (e) select, (d) delete, or (q) quit",
+                        f"({functions.showKeyBind(matches[0])}) add, ({functions.showKeyBind(matches[1])}) select, ({functions.showKeyBind(matches[2])}) delete, or ({functions.showKeyBind(matches[3])}) quit",
                     ],
                     [0, "max-45"],
                     curses.COLS,
@@ -46,7 +51,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a subreddit number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[3])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -56,7 +61,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a subreddit number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[3])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -64,7 +69,7 @@ class EditSearch:
             ],
             "input": [
                 scroll.Line(
-                    ["Enter name of subreddit, then press enter:", "(enter q to exit)"],
+                    ["Enter name of subreddit, then press enter:", f"(enter {functions.showKeyBind(matches[3])} to exit)"],
                     [0, "max-18"],
                     curses.COLS,
                 )
@@ -86,6 +91,7 @@ class EditSearch:
             minCols=self.minCols,
         )
         page.switchTooltip("main")
+        
 
         while True:
             # Updates the tooltip, and prints the headers to the screen
@@ -191,10 +197,13 @@ class EditSearch:
 
     def editSubreddit(self, index):
         self.subreddit = self.search.subreddits[index]
+        targets = ["enter","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
-                    ["<-- Line %i/%i -- >", "(press e to select a filter to edit)"],
+                    ["<-- Line %i/%i -- >", f"(press {functions.showKeyBind(matches[0])} to select a filter to edit)"],
                     [0, "max-37"],
                     curses.COLS,
                 )
@@ -203,7 +212,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[1])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -213,7 +222,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[1])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -251,7 +260,7 @@ class EditSearch:
             # Gets input from the user
 
             filterInput = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match filterInput:
@@ -288,7 +297,7 @@ class EditSearch:
 
                         # Checks if it is within the bounds of post numbersS
                         if val >= 0 and val < 6:
-                            changes = self.editFilter(index, val)
+                            changes = self.editFilter(filterValue = val)
                             if changes["resized"]:
                                 resized = True
                                 page.resize()
@@ -301,11 +310,32 @@ class EditSearch:
                     if page.manipulate(filterInput) == 1:
                         resized = True
 
-    def editFilter(self, index, filterValue):
+    def editFilter(self, filterValue):
+        match filterValue:
+            case 0:
+                return self.editFilterIndividual(self.subreddit.titleWL)
+            case 1:
+                return self.editFilterIndividual(self.subreddit.titleBL)
+            case 2:
+                return self.editFilterIndividual(self.subreddit.flairWL)
+            case 3:
+                return self.editFilterIndividual(self.subreddit.flairBL)
+            case 4:
+                return self.editFilterIndividual(self.subreddit.postWL)
+            case 5:
+                return self.editFilterIndividual(self.subreddit.postBL)
+            case _:
+                return False
+
+    
+    def editFilterIndividual(self, filter):
+        targets = ["add","delete","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
-                    ["<-- Line %i/%i -- >", "(a) add, (d) delete, or (q) quit"],
+                    ["<-- Line %i/%i -- >", f"({functions.showKeyBind(matches[0])}) add, ({functions.showKeyBind(matches[1])}) delete, or ({functions.showKeyBind(matches[2])}) quit"],
                     [0, "max-33"],
                     curses.COLS,
                 )
@@ -314,7 +344,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[2])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -324,7 +354,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[2])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -342,83 +372,25 @@ class EditSearch:
         scrollingList = scroll.ScrollingList(self.screen, "", tooltip=toolTip)
         page = p.Page()
         content = None
-        match filterValue:
-            case 0:
-                content = self.subreddit.titleWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWT,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case 1:
-                content = self.subreddit.titleBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBT,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case 2:
-                content = self.subreddit.flairWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWF,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case 3:
-                content = self.subreddit.flairBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBF,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case 4:
-                content = self.subreddit.postWL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeWP,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case 5:
-                content = self.subreddit.postBL
-                page.update(
-                    screen=self.screen,
-                    scrollingList=scrollingList,
-                    tooltip=toolTip,
-                    tooltipTypes=toolTipTypes,
-                    onUpdate=self.treeBP,
-                    content=content,
-                    minRows=self.minLines,
-                    minCols=self.minCols,
-                )
-            case _:
-                return False
+        onUpdate = None
+        page.update(
+            screen=self.screen,
+            scrollingList=scrollingList,
+            tooltip=toolTip,
+            tooltipTypes=toolTipTypes,
+            onUpdate=onUpdate,
+            content=content,
+            minRows=self.minLines,
+            minCols=self.minCols,
+        )
+        content = filter
+        onUpdate = self.filterUpdate
+        
+        page.update_onUpdate(onUpdate)
         page.updateContent(content)
+        
         page.switchTooltip("main")
+        page.updateContent()
         resized = False
         updated = False
 
@@ -431,7 +403,7 @@ class EditSearch:
             # Gets input from the user
 
             input = functions.eventListener(
-                self.screen, bindings=[kb.controlKeys, kb.editKeys]
+                self.screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
             )
 
             match input:
@@ -442,76 +414,22 @@ class EditSearch:
                 case "add":
                     page.refreshTooltip("input", print=True)
                     name = functions.getInput(self.screen, col=36)
-                    match filterValue:
-                        case 0:
-                            self.subreddit.add(titleWL=name)
-                            content = self.subreddit.titleWL
-                        case 1:
-                            self.subreddit.add(titleBL=name)
-                            content = self.subreddit.titleBL
-                        case 2:
-                            self.subreddit.add(flairWL=name)
-                            content = self.subreddit.flairWL
-                        case 3:
-                            self.subreddit.add(flairBL=name)
-                            content = self.subreddit.flairBL
-                        case 4:
-                            self.subreddit.add(postWL=name)
-                            content = self.subreddit.postWL
-                        case 5:
-                            self.subreddit.add(postBL=name)
-                            content = self.subreddit.postBL
+                    filter.add(name)
+                    content = filter
+                    
                     page.updateContent(content)
                     updated = True
 
-                    match filterValue:
-                        case 0:
-                            pass
+                    
                 case "delete":
                     # Updates the tooltip and places the cursor for input
-                    match filterValue:
-                        case 0:
-                            if self.subreddit.titleWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.titleWL), print=True
-                                )
-                            else:
-                                continue
-                        case 1:
-                            if self.subreddit.titleBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.titleBL), print=True
-                                )
-                            else:
-                                continue
-                        case 2:
-                            if self.subreddit.flairWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.flairWL), print=True
-                                )
-                            else:
-                                continue
-                        case 3:
-                            if self.subreddit.flairBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.flairBL), print=True
-                                )
-                            else:
-                                continue
-                        case 4:
-                            if self.subreddit.postWL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.postWL), print=True
-                                )
-                            else:
-                                continue
-                        case 5:
-                            if self.subreddit.postBL is not None:
-                                page.refreshTooltip(
-                                    "press", len(self.subreddit.postBL), print=True
-                                )
-                            else:
-                                continue
+                    if filter is not None:
+                        page.refreshTooltip(
+                            "press", len(filter.content), print=True
+                        )
+                    else:
+                        continue
+                    
 
                     functions.placeCursor(self.screen, x=48, y=curses.LINES - 1)
                     c = self.screen.getch()  # Gets the character they type
@@ -520,49 +438,13 @@ class EditSearch:
 
                     else:  # Otherwise
                         # Update prompt to tell them to 'enter q" instead of 'press q"
-                        match filterValue:
-                            case 0:
-                                if self.subreddit.titleWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.titleWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 1:
-                                if self.subreddit.titleBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.titleBL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 2:
-                                if self.subreddit.flairWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.flairWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 3:
-                                if self.subreddit.flairBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.flairBL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 4:
-                                if self.subreddit.postWL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.postWL), print=True
-                                    )
-                                else:
-                                    continue
-                            case 5:
-                                if self.subreddit.postBL is not None:
-                                    page.refreshTooltip(
-                                        "enter", len(self.subreddit.postBL), print=True
-                                    )
-                                else:
-                                    continue
+                        if filter is not None:
+                            page.refreshTooltip(
+                                "enter", len(filter.content), print=True
+                            )
+                        else:
+                            continue
+                        
 
                         string = functions.getInput(screen=self.screen, unget=c, col=48)
 
@@ -574,96 +456,29 @@ class EditSearch:
                             continue
 
                         # Checks if it is within the bounds of post numbers
-                        match filterValue:
-                            case 0:
-                                if val >= 0 and val < len(self.subreddit.titleWL):
-                                    del self.subreddit.titleWL[val]
-                            case 1:
-                                if val >= 0 and val < len(self.subreddit.titleBL):
-                                    del self.subreddit.titleBL[val]
-                            case 2:
-                                if val >= 0 and val < len(self.subreddit.flairWL):
-                                    del self.subreddit.flairWL[val]
-                            case 3:
-                                if val >= 0 and val < len(self.subreddit.flairBL):
-                                    del self.subreddit.flairBL[val]
-                            case 4:
-                                if val >= 0 and val < len(self.subreddit.postWL):
-                                    del self.subreddit.postWL[val]
-                            case 5:
-                                if val >= 0 and val < len(self.subreddit.postBL):
-                                    del self.subreddit.postBL[val]
+                        if val >= 0 and val < len(filter.content):
+                            del filter.content[val]
+                            updated = True
 
                         page.updateContent()
 
                 case _:
                     if page.manipulate(input) == 1:
                         resized = True
-
+            
+        
+    
+    
     def viewSearchTree(self, search):
-        return tree.searchTree(
-            search, curses.COLS, config.fancy_characters, enumerate=True
-        )
+        search.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
+        return search.tree.print(as_a_string=False)
+
 
     def viewSubTree(self, subreddit):
-        return tree.subTree(subreddit, curses.COLS, config.fancy_characters)
+        subreddit.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
+        return subreddit.tree.print(as_a_string=False)
 
-    def treeWT(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Title whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
-
-    def treeBT(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Title blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
-
-    def treeWF(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Flair whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
-
-    def treeBF(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Flair blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
-
-    def treeWP(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Post whitelist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
-
-    def treeBP(self, filterContent):
-        return tree.filterTree(
-            self.subreddit.name,
-            "Post blacklist",
-            filterContent,
-            curses.COLS,
-            config.fancy_characters,
-            True,
-        )
+    def filterUpdate(self,filter):
+        filter.tree.cascading_update(set_fancy=config.fancy_characters,term_width=curses.COLS)
+        return filter.tree.print(as_a_string=False)
+    

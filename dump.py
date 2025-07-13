@@ -1,5 +1,18 @@
 import json
 
+def serializeFilter(filter):
+    if filter is not None:
+        if filter.content is not None and len(filter.content) > 0:
+            string = "["
+            for item in filter.content:
+                string += f"'{item}',"
+            string = string[:-1]
+            string += "]"
+            string = string.replace("'",'"')
+            string = string.replace("None","null")
+            return string
+    return "null"
+            
 
 def serializeSub(sub):
     """
@@ -7,7 +20,7 @@ def serializeSub(sub):
     * sub is the SubredditSearch object to be serialized
     """
     if sub is not None:
-        string = f'"name":"{sub.name}", "whiteListTitle":{sub.titleWL}, "blackListTitle":{sub.titleBL}, "whiteListFlair":{sub.flairWL}, "blackListFlair":{sub.flairBL}, "whiteListPost":{sub.postWL}, "blackListPost":{sub.postBL}'
+        string = f'"name":"{sub.name}", "whiteListTitle":{serializeFilter(sub.titleWL)}, "blackListTitle":{serializeFilter(sub.titleBL)}, "whiteListFlair":{serializeFilter(sub.flairWL)}, "blackListFlair":{serializeFilter(sub.flairBL)}, "whiteListPost":{serializeFilter(sub.postWL)}, "blackListPost":{serializeFilter(sub.postBL)}'
         string = "{" + string + "}"
         string = string.replace("'", '"')
         string = string.replace("None", "null")
