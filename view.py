@@ -43,13 +43,17 @@ def viewPost(post, screen, minCols=80, minLines=24):
         stringList = viewPostUpdate(content)  # Enboxes the content
     except AttributeError:
         stringList = ""
-
+    
     # Sets the tooltip
+    targets = ["enter","exit"]
+    bindingSet = kb.controlKeys + kb.editKeys
+    matches = kb.findBindings(targets,bindingSet)
+
     toolTipType = "main"
     toolTipTypes = {
         "main": [
             scroll.Line(
-                ["<-- Line %i/%i -- >", "press (q) to exit"],
+                ["<-- Line %i/%i -- >", f"press ({functions.showKeyBind(matches[1])}) to exit"],
                 [0, "max-18"],
                 curses.COLS,
             )

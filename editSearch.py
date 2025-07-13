@@ -33,12 +33,15 @@ class EditSearch:
    
 
     def editSearch(self):
+        targets = ["add","enter","delete","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
                     [
                         "<-- Line %i/%i -- >",
-                        "(a) add, (e) select, (d) delete, or (q) quit",
+                        f"({functions.showKeyBind(matches[0])}) add, ({functions.showKeyBind(matches[1])}) select, ({functions.showKeyBind(matches[2])}) delete, or ({functions.showKeyBind(matches[3])}) quit",
                     ],
                     [0, "max-45"],
                     curses.COLS,
@@ -48,7 +51,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a subreddit number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[3])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -58,7 +61,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a subreddit number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[3])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -66,7 +69,7 @@ class EditSearch:
             ],
             "input": [
                 scroll.Line(
-                    ["Enter name of subreddit, then press enter:", "(enter q to exit)"],
+                    ["Enter name of subreddit, then press enter:", f"(enter {functions.showKeyBind(matches[3])} to exit)"],
                     [0, "max-18"],
                     curses.COLS,
                 )
@@ -194,10 +197,13 @@ class EditSearch:
 
     def editSubreddit(self, index):
         self.subreddit = self.search.subreddits[index]
+        targets = ["enter","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
-                    ["<-- Line %i/%i -- >", "(press e to select a filter to edit)"],
+                    ["<-- Line %i/%i -- >", f"(press {functions.showKeyBind(matches[0])} to select a filter to edit)"],
                     [0, "max-37"],
                     curses.COLS,
                 )
@@ -206,7 +212,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[1])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -216,7 +222,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[1])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -323,10 +329,13 @@ class EditSearch:
 
     
     def editFilterIndividual(self, filter):
+        targets = ["add","delete","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipTypes = {
             "main": [
                 scroll.Line(
-                    ["<-- Line %i/%i -- >", "(a) add, (d) delete, or (q) quit"],
+                    ["<-- Line %i/%i -- >", f"({functions.showKeyBind(matches[0])}) add, ({functions.showKeyBind(matches[1])}) delete, or ({functions.showKeyBind(matches[2])}) quit"],
                     [0, "max-33"],
                     curses.COLS,
                 )
@@ -335,7 +344,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(press q to exit)",
+                        f"(press {functions.showKeyBind(matches[2])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,
@@ -345,7 +354,7 @@ class EditSearch:
                 scroll.Line(
                     [
                         "Enter a filter number (1-%i), then press enter:",
-                        "(enter q to exit)",
+                        f"(enter {functions.showKeyBind(matches[2])} to exit)",
                     ],
                     [0, "max-18"],
                     curses.COLS,

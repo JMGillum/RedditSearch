@@ -7,25 +7,28 @@ import keybindings as kb
 
 
 def browsePosts(posts, screen, minCols=80, minLines=24):
+    targets = ["enter","exit"]
+    bindingSet = kb.controlKeys + kb.editKeys
+    matches = kb.findBindings(targets,bindingSet)
     toolTipType = "main"
     toolTipTypes = {
         "main": [
             scroll.Line(
-                ["<-- Line %i/%i -- >", "(press e to view a post or q to quit)"],
+                ["<-- Line %i/%i -- >", f"(press {functions.showKeyBind(matches[0])} to view a post or {functions.showKeyBind(matches[1])} to quit)"],
                 [0, "max-38"],
                 curses.COLS,
             )
         ],
         "press": [
             scroll.Line(
-                ["Enter a post number (1-%i), then press enter:", "(press q to exit)"],
+                ["Enter a post number (1-%i), then press enter:", f"(press {functions.showKeyBind(matches[1])} to exit)"],
                 [0, "max-18"],
                 curses.COLS,
             )
         ],
         "enter": [
             scroll.Line(
-                ["Enter a post number (1-%i), then press enter:", "(enter q to exit)"],
+                ["Enter a post number (1-%i), then press enter:", f"(enter {functions.showKeyBind(matches[1])} to exit)"],
                 [0, "max-18"],
                 curses.COLS,
             )

@@ -263,12 +263,15 @@ def viewSearch(screen, search, minCols=80, minLines=24):
     """
 
     if search is not None:
+        targets = ["enter","exit"]
+        bindingSet = kb.controlKeys + kb.editKeys
+        matches = kb.findBindings(targets,bindingSet)
         toolTipType = "main"
         toolTipTypes = {
             "main": [
                 scroll.Line("", 0, curses.COLS),
                 scroll.Line(
-                    ["<-- Line %i -- >", "press (e) to edit or (q) to exit"],
+                    ["<-- Line %i -- >", f"press ({showKeyBind(matches[0])}) to edit or ({showKeyBind(matches[1])}) to exit"],
                     [0, "max-33"],
                     curses.COLS,
                 ),
