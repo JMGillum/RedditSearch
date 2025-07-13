@@ -59,6 +59,10 @@ class Page:
         self.minRows = minRows
         self.minCols = minCols
 
+    
+    def update_onUpdate(self,onUpdate):
+        self.onUpdate=onUpdate
+    
     def updateContent(self, content=None):
         if content is not None:
             self.content = content
