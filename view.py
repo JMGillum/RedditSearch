@@ -89,7 +89,7 @@ def viewPost(post, screen, minCols=80, minLines=24):
                     kb.scrollHorizontalKeys,
                     kb.scrollVerticalKeys,
                     kb.postKeys,
-                ],
+                ], timeout = -1
             )
         skip = False
 

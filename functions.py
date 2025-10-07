@@ -771,10 +771,12 @@ def eventListener(
     if isinstance(bindings, dict):
         bindings = [bindings]
     try:
-        screen.timeout(timeout)
+        if not timeout == -1:
+            screen.timeout(timeout)
         char = screen.getch()
         if char == curses.KEY_RESIZE:
-            screen.timeout(-1)
+            if not timeout == -1:
+                screen.timeout(-1)
             return "resize"
         elif anyChar:
             retVal = ""
@@ -782,21 +784,26 @@ def eventListener(
                 retVal = "timeout"
             else:
                 retVal = "any"
-            screen.timeout(-1)
+            if not timeout == -1:
+                screen.timeout(-1)
             return retVal
         elif characters:
             if not bindings:
-                screen.timeout(-1)
+                if not timeout == -1:
+                    screen.timeout(-1)
                 raise exceptions.NoBindingError
             else:
                 for item in bindings:
                     for binding in item:
                         if char in binding.keys:
-                            screen.timeout(-1)
+                            if not timeout == -1:
+                                screen.timeout(-1)
                             return binding.description
         else:
-            screen.timeout(-1)
+            if not timeout == -1:
+                screen.timeout(-1)
             return "timeout"
     except curses.error:
-        screen.timeout(-1)
+        if not timeout == -1:
+            screen.timeout(-1)
         return "timeout"

@@ -59,7 +59,7 @@ def browsePosts(posts, screen, minCols=80, minLines=24):
         # Gets input from the user
 
         input = functions.eventListener(
-            screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys]
+            screen, bindings=[kb.controlKeys, kb.scrollVerticalKeys, kb.editKeys],timeout=-1
         )
 
         match input:
